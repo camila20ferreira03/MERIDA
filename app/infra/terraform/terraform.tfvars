@@ -12,8 +12,8 @@ lambda_log_retention_days = 7
 # ZIP Deployment - Terraform empaqueta automáticamente
 # ====================================
 lambda_handler     = "app.lambda_handler"
-lambda_runtime     = "python3.13"
-lambda_source_path = "../../../lambdas/lambda_iot_handler"
+lambda_runtime     = "python3.9"
+lambda_source_path = "../lambdas/lambda_iot_handler"
 
 # AWS Academy LabRole ARN
 # Get this from AWS Console: IAM > Roles > LabRole > Copy ARN
@@ -92,3 +92,27 @@ tags = {
   ManagedBy   = "Terraform"
 }
 
+# ===========================================
+# Cognito Configuration
+# ===========================================
+cognito_user_pool_name = "merida-smart-grow-users"
+cognito_domain_prefix  = ""  # Leave empty to skip domain creation
+cognito_callback_urls  = ["http://localhost:3000", "http://localhost:3000/"]
+cognito_logout_urls    = ["http://localhost:3000", "http://localhost:3000/"]
+
+# ===========================================
+# Amplify Configuration
+# ===========================================
+# Note: Set to false if AWS Academy doesn't support Amplify
+enable_amplify = false  # Disabled by default - set to true after configuring
+
+# IMPORTANT: Update these values before enabling Amplify
+amplify_app_name       = "merida-smart-grow-frontend"
+amplify_repository_url = ""  # Add your repo URL: https://github.com/USERNAME/MERIDA
+github_access_token    = ""  # Add your GitHub Personal Access Token
+amplify_main_branch    = "main"
+amplify_enable_pr_previews = false
+amplify_enable_auto_build  = true
+
+# API Configuration
+api_base_url = "http://localhost:8000"  # Update with your API Gateway URL later

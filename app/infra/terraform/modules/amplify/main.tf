@@ -15,13 +15,7 @@ resource "aws_amplify_app" "frontend" {
   build_spec = var.custom_build_spec != "" ? var.custom_build_spec : null
 
   # Environment variables
-  dynamic "environment_variables" {
-    for_each = var.environment_variables
-    content {
-      name  = environment_variables.key
-      value = environment_variables.value
-    }
-  }
+  environment_variables = var.environment_variables
 
   # Custom rules for SPA routing
   custom_rule {
@@ -61,13 +55,7 @@ resource "aws_amplify_branch" "main" {
   enable_auto_build = var.enable_auto_build
 
   # Environment variables specific to this branch (optional)
-  dynamic "environment_variables" {
-    for_each = var.branch_environment_variables
-    content {
-      name  = environment_variables.key
-      value = environment_variables.value
-    }
-  }
+  environment_variables = var.branch_environment_variables
 
   # Framework (Vite)
   framework = "React"
