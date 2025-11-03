@@ -67,10 +67,6 @@ jobs:
         id: plan
         env:
           TF_VAR_lab_role_arn: ${{ secrets.LAB_ROLE_ARN }}
-          TF_VAR_amplify_repository_url: ${{ github.server_url }}/${{ github.repository }}
-          TF_VAR_github_access_token: ${{ secrets.GH_PAT }}
-          TF_VAR_cognito_callback_urls: ${{ vars.COGNITO_CALLBACK_URLS }}
-          TF_VAR_cognito_logout_urls: ${{ vars.COGNITO_LOGOUT_URLS }}
         run: terraform plan -no-color -input=false
         continue-on-error: true
 
@@ -105,7 +101,9 @@ jobs:
 
       - name: Terraform Plan Status
         if: steps.plan.outcome == 'failure'
-        run: exit 1
+        run: |
+          echo "Terraform plan failed with errors"
+          exit 1
 
   terraform-apply:
     name: Terraform Apply
@@ -142,8 +140,4 @@ jobs:
       - name: Terraform Apply
         env:
           TF_VAR_lab_role_arn: ${{ secrets.LAB_ROLE_ARN }}
-          TF_VAR_amplify_repository_url: ${{ github.server_url }}/${{ github.repository }}
-          TF_VAR_github_access_token: ${{ secrets.GH_PAT }}
-          TF_VAR_cognito_callback_urls: ${{ vars.COGNITO_CALLBACK_URLS }}
-          TF_VAR_cognito_logout_urls: ${{ vars.COGNITO_LOGOUT_URLS }}
         run: terraform apply -auto-approve -input=false
