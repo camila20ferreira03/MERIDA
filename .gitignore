@@ -41,3 +41,5 @@ env/
 app/infra/terraform/.terraform/
 app/infra/terraform/.terraform.lock.hcl
 app/infra/terraform/terraform.tfstate*
+app/infra/terraform/builds/
+app/infra/terraform/*.tfplan
