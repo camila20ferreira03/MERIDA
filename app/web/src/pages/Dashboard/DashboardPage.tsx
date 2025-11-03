@@ -10,7 +10,6 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts'
-import { useEffect } from 'react'
 
 export function DashboardPage() {
   const { selectedPlot } = usePlotStore()

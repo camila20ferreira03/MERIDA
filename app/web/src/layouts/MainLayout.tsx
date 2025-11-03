@@ -18,7 +18,7 @@ const navigation = [
 
 export function MainLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const { logout, user } = useAuth()
+  const { logout } = useAuth()
   const navigate = useNavigate()
 
   const handleLogout = async () => {

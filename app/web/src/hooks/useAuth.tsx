@@ -1,8 +1,14 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { signIn, signOut, getCurrentUser, fetchAuthSession } from 'aws-amplify/auth'
+import { signIn, signOut, getCurrentUser } from 'aws-amplify/auth'
+
+interface User {
+  username: string
+  userId: string
+  signInDetails?: unknown
+}
 
 interface AuthContextType {
-  user: any | null
+  user: User | null
   loading: boolean
   login: (username: string, password: string) => Promise<void>
   logout: () => Promise<void>
@@ -11,8 +17,10 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+// Component exported separately to avoid fast-refresh issues
+// eslint-disable-next-line react-refresh/only-export-components
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<any | null>(null)
+  const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {

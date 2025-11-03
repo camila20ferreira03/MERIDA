@@ -18,8 +18,9 @@ export function LoginPage() {
     try {
       await login(username, password)
       navigate('/dashboard')
-    } catch (err: any) {
-      setError(err.message || 'Failed to login. Please check your credentials.')
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to login. Please check your credentials.'
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
