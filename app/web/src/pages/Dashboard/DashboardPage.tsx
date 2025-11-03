@@ -24,7 +24,7 @@ export function DashboardPage() {
   if (stateLoading) {
     return (
       <div className="flex h-96 items-center justify-center">
-        <div className="h-16 w-16 animate-spin rounded-full border-b-2 border-t-2 border-primary-600"></div>
+        <div className="border-primary-600 h-16 w-16 animate-spin rounded-full border-t-2 border-b-2"></div>
       </div>
     )
   }

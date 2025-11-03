@@ -25,7 +25,7 @@ export function PlotsPage() {
   if (isLoading) {
     return (
       <div className="flex h-96 items-center justify-center">
-        <div className="h-16 w-16 animate-spin rounded-full border-b-2 border-t-2 border-primary-600"></div>
+        <div className="border-primary-600 h-16 w-16 animate-spin rounded-full border-t-2 border-b-2"></div>
       </div>
     )
   }
@@ -39,7 +39,7 @@ export function PlotsPage() {
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="inline-flex items-center rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-primary-700"
+          className="bg-primary-600 hover:bg-primary-700 inline-flex items-center rounded-md px-4 py-2 text-sm font-medium text-white shadow-sm"
         >
           <PlusIcon className="mr-2 h-5 w-5" />
           Add Plot
@@ -79,7 +79,7 @@ export function PlotsPage() {
                 <div className="mt-4 flex space-x-2">
                   <button
                     onClick={() => setSelectedPlot(plot)}
-                    className="flex-1 rounded-md bg-primary-50 px-3 py-2 text-sm font-medium text-primary-600 hover:bg-primary-100"
+                    className="bg-primary-50 text-primary-600 hover:bg-primary-100 flex-1 rounded-md px-3 py-2 text-sm font-medium"
                   >
                     View Details
                   </button>
@@ -99,7 +99,7 @@ export function PlotsPage() {
           <p className="text-gray-500">No plots found. Create your first plot to get started!</p>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="mt-4 inline-flex items-center rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-primary-700"
+            className="bg-primary-600 hover:bg-primary-700 mt-4 inline-flex items-center rounded-md px-4 py-2 text-sm font-medium text-white shadow-sm"
           >
             <PlusIcon className="mr-2 h-5 w-5" />
             Create Plot
@@ -143,7 +143,7 @@ function CreatePlotModal({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex min-h-screen items-center justify-center px-4">
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75" onClick={onClose}></div>
+        <div className="bg-opacity-75 fixed inset-0 bg-gray-500" onClick={onClose}></div>
         <div className="relative w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
           <h3 className="mb-4 text-lg font-semibold text-gray-900">Create New Plot</h3>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -156,7 +156,7 @@ function CreatePlotModal({
                 required
                 value={facilityId}
                 onChange={(e) => setFacilityId(e.target.value)}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500"
+                className="focus:border-primary-500 focus:ring-primary-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:outline-none"
               />
             </div>
             <div>
@@ -165,7 +165,7 @@ function CreatePlotModal({
                 type="text"
                 value={species}
                 onChange={(e) => setSpecies(e.target.value)}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500"
+                className="focus:border-primary-500 focus:ring-primary-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:outline-none"
               />
             </div>
             <div>
@@ -175,7 +175,7 @@ function CreatePlotModal({
                 step="0.01"
                 value={area}
                 onChange={(e) => setArea(e.target.value)}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500"
+                className="focus:border-primary-500 focus:ring-primary-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:outline-none"
               />
             </div>
             <div className="flex space-x-2">
@@ -188,7 +188,7 @@ function CreatePlotModal({
               </button>
               <button
                 type="submit"
-                className="flex-1 rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700"
+                className="bg-primary-600 hover:bg-primary-700 flex-1 rounded-md px-4 py-2 text-sm font-medium text-white"
               >
                 Create
               </button>

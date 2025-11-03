@@ -21,5 +21,6 @@ export const usePlotStore = create<PlotState>((set) => ({
     set((state) => ({
       plots: state.plots.map((p) => (p.plot_id === plotId ? { ...p, ...updates } : p)),
     })),
-  removePlot: (plotId) => set((state) => ({ plots: state.plots.filter((p) => p.plot_id !== plotId) })),
+  removePlot: (plotId) =>
+    set((state) => ({ plots: state.plots.filter((p) => p.plot_id !== plotId) })),
 }))

@@ -19,7 +19,8 @@ export function LoginPage() {
       await login(username, password)
       navigate('/dashboard')
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to login. Please check your credentials.'
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to login. Please check your credentials.'
       setError(errorMessage)
     } finally {
       setLoading(false)
@@ -30,11 +31,7 @@ export function LoginPage() {
     <div>
       <h2 className="mb-6 text-center text-2xl font-bold text-gray-900">Sign in to your account</h2>
 
-      {error && (
-        <div className="mb-4 rounded-md bg-red-50 p-4 text-sm text-red-800">
-          {error}
-        </div>
-      )}
+      {error && <div className="mb-4 rounded-md bg-red-50 p-4 text-sm text-red-800">{error}</div>}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
@@ -47,7 +44,7 @@ export function LoginPage() {
             required
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500"
+            className="focus:border-primary-500 focus:ring-primary-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:outline-none"
             disabled={loading}
           />
         </div>
@@ -62,7 +59,7 @@ export function LoginPage() {
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-primary-500"
+            className="focus:border-primary-500 focus:ring-primary-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:outline-none"
             disabled={loading}
           />
         </div>
@@ -71,7 +68,7 @@ export function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="flex w-full justify-center rounded-md bg-primary-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="bg-primary-600 hover:bg-primary-700 focus:ring-primary-500 flex w-full justify-center rounded-md px-4 py-2 text-sm font-medium text-white shadow-sm focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-400"
           >
             {loading ? 'Signing in...' : 'Sign in'}
           </button>
