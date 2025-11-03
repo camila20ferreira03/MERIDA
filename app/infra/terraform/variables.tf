@@ -308,42 +308,129 @@ variable "ecs_log_retention_days" {
   default     = 7
 }
 
-  # ===========================================
-  # ECR Configuration
-  # ===========================================
+# ===========================================
+# ECR Configuration
+# ===========================================
 
-  variable "ecr_repository_name" {
-    description = "Name of the ECR repository for backend image"
-    type        = string
-    default     = "merida-backend"
-  }
+variable "ecr_repository_name" {
+  description = "Name of the ECR repository for backend image"
+  type        = string
+  default     = "merida-backend"
+}
 
-  variable "ecr_image_tag_mutability" {
-    description = "ECR image tag mutability (MUTABLE or IMMUTABLE)"
-    type        = string
-    default     = "MUTABLE"
-  }
+variable "ecr_image_tag_mutability" {
+  description = "ECR image tag mutability (MUTABLE or IMMUTABLE)"
+  type        = string
+  default     = "MUTABLE"
+}
 
-  variable "ecr_scan_on_push" {
-    description = "Scan images on push to ECR"
-    type        = bool
-    default     = true
-  }
+variable "ecr_scan_on_push" {
+  description = "Scan images on push to ECR"
+  type        = bool
+  default     = true
+}
 
-  variable "ecr_encryption_type" {
-    description = "ECR encryption type (AES256 or KMS)"
-    type        = string
-    default     = "AES256"
-  }
+variable "ecr_encryption_type" {
+  description = "ECR encryption type (AES256 or KMS)"
+  type        = string
+  default     = "AES256"
+}
 
-  variable "ecr_image_count" {
-    description = "Number of tagged images to keep in ECR"
-    type        = number
-    default     = 10
-  }
+variable "ecr_image_count" {
+  description = "Number of tagged images to keep in ECR"
+  type        = number
+  default     = 10
+}
 
-  variable "ecr_untagged_image_days" {
-    description = "Number of days to keep untagged images in ECR"
-    type        = number
-    default     = 7
-  }
+variable "ecr_untagged_image_days" {
+  description = "Number of days to keep untagged images in ECR"
+  type        = number
+  default     = 7
+}
+
+# ===========================================
+# Cognito Variables
+# ===========================================
+
+variable "cognito_user_pool_name" {
+  description = "Name of the Cognito User Pool"
+  type        = string
+  default     = "merida-smart-grow-users"
+}
+
+variable "cognito_domain_prefix" {
+  description = "Domain prefix for Cognito hosted UI (e.g., 'merida-smart-grow'). Leave empty to skip domain creation."
+  type        = string
+  default     = ""
+}
+
+variable "cognito_callback_urls" {
+  description = "List of allowed callback URLs for Cognito OAuth"
+  type        = list(string)
+  default     = ["http://localhost:3000", "http://localhost:3000/"]
+}
+
+variable "cognito_logout_urls" {
+  description = "List of allowed logout URLs for Cognito OAuth"
+  type        = list(string)
+  default     = ["http://localhost:3000", "http://localhost:3000/"]
+}
+
+# ===========================================
+# Amplify Variables
+# ===========================================
+
+variable "enable_amplify" {
+  description = "Enable AWS Amplify module (set to false if AWS Academy blocks it)"
+  type        = bool
+  default     = true
+}
+
+variable "amplify_app_name" {
+  description = "Name of the Amplify application"
+  type        = string
+  default     = "merida-smart-grow-frontend"
+}
+
+variable "amplify_repository_url" {
+  description = "GitHub repository URL (e.g., https://github.com/username/repo)"
+  type        = string
+  default     = ""
+}
+
+variable "github_access_token" {
+  description = "GitHub personal access token for Amplify to access the repository"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "amplify_main_branch" {
+  description = "Main branch name for Amplify deployment"
+  type        = string
+  default     = "main"
+}
+
+variable "amplify_enable_pr_previews" {
+  description = "Enable automatic preview environments for pull requests"
+  type        = bool
+  default     = false
+}
+
+variable "amplify_enable_auto_build" {
+  description = "Enable automatic builds on push to main branch"
+  type        = bool
+  default     = true
+}
+
+variable "amplify_environment_variables" {
+  description = "Additional environment variables for Amplify app"
+  type        = map(string)
+  default     = {}
+}
+
+variable "api_base_url" {
+  description = "Base URL for the backend API (will be passed to frontend as VITE_API_BASE_URL)"
+  type        = string
+  default     = "http://localhost:8000"
+}
