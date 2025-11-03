@@ -107,7 +107,7 @@ cognito_logout_urls    = ["http://localhost:3000", "http://localhost:3000/"]
 enable_amplify = true
 
 amplify_app_name           = "merida-smart-grow-frontend"
-amplify_repository_url     = "https://github.com/camila20ferreira03/MERIDA"
+amplify_repository_url     = "https://github.com/juanlu-a/MERIDA"
 # GitHub token comes from environment variable: TF_VAR_github_access_token
 # Set it in .env.local before running terraform
 github_access_token        = var.github_access_token
