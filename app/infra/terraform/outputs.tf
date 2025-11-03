@@ -41,3 +41,56 @@ output "iot_rule_name" {
   description = "Name of the IoT rule"
   value       = module.iot_rule.rule_name
 }
+
+# ===========================================
+# Cognito Outputs
+# ===========================================
+
+output "cognito_user_pool_id" {
+  description = "ID of the Cognito User Pool"
+  value       = module.cognito.user_pool_id
+}
+
+output "cognito_user_pool_arn" {
+  description = "ARN of the Cognito User Pool"
+  value       = module.cognito.user_pool_arn
+}
+
+output "cognito_user_pool_endpoint" {
+  description = "Endpoint of the Cognito User Pool"
+  value       = module.cognito.user_pool_endpoint
+}
+
+output "cognito_client_id" {
+  description = "ID of the Cognito User Pool Client"
+  value       = module.cognito.user_pool_client_id
+}
+
+output "cognito_user_pool_domain" {
+  description = "Domain of the Cognito User Pool (if created)"
+  value       = module.cognito.user_pool_domain
+}
+
+# ===========================================
+# Amplify Outputs
+# ===========================================
+
+output "amplify_app_id" {
+  description = "ID of the Amplify app"
+  value       = var.enable_amplify ? module.amplify[0].app_id : null
+}
+
+output "amplify_default_domain" {
+  description = "Default domain of the Amplify app"
+  value       = var.enable_amplify ? module.amplify[0].default_domain : null
+}
+
+output "amplify_app_url" {
+  description = "URL of the deployed Amplify app"
+  value       = var.enable_amplify ? module.amplify[0].branch_url : null
+}
+
+output "amplify_app_name" {
+  description = "Name of the Amplify app"
+  value       = var.enable_amplify ? module.amplify[0].app_name : null
+}
