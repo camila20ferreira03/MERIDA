@@ -23,15 +23,9 @@ variable "lambda_runtime" {
 }
 
 variable "lambda_source_path" {
-  description = "Path to the Lambda source code directory (for ZIP deployment)"
+  description = "Path to the Lambda source code directory - Terraform empaqueta automáticamente"
   type        = string
-  default     = "./lambda_code"
-}
-
-variable "lambda_image_uri" {
-  description = "ECR image URI for Lambda container deployment. If set, overrides source_path."
-  type        = string
-  default     = null
+  default     = "../../../lambdas/lambda_iot_handler"
 }
 
 variable "lambda_log_retention_days" {
@@ -119,3 +113,237 @@ variable "tags" {
     Project     = "Merida"
   }
 }
+
+# ===========================================
+# VPC Network Variables
+# ===========================================
+
+variable "vpc_name" {
+  description = "Name of the VPC"
+  type        = string
+  default     = "MyMainVPC"
+}
+
+variable "vpc_cidr_block" {
+  description = "CIDR block for the main VPC"
+  type        = string
+  default     = "10.0.0.0/16"
+}
+
+variable "prv_subnet_a_cidr" {
+  description = "CIDR block for the Private subnet A"
+  type        = string
+  default     = "10.0.1.0/24"
+}
+
+variable "pub_subnet_a_cidr" {
+  description = "CIDR block for the Public subnet A"
+  type        = string
+  default     = "10.0.2.0/24"
+}
+
+variable "prv_subnet_b_cidr" {
+  description = "CIDR block for the Private subnet B"
+  type        = string
+  default     = "10.0.3.0/24"
+}
+
+variable "pub_subnet_b_cidr" {
+  description = "CIDR block for the Public subnet B"
+  type        = string
+  default     = "10.0.4.0/24"
+}
+
+# ===========================================
+# ECS Configuration (Fargate Only)
+# ===========================================
+
+variable "ecs_cluster_name" {
+  description = "Name for the ECS cluster"
+  type        = string
+  default     = "merida-cluster"
+}
+
+variable "ecs_enable_container_insights" {
+  description = "Enable CloudWatch Container Insights for the cluster"
+  type        = bool
+  default     = false
+}
+
+variable "ecs_task_family" {
+  description = "Family name for the ECS task definition"
+  type        = string
+  default     = "merida-task"
+}
+
+variable "ecs_container_name" {
+  description = "Container name used inside the task definition"
+  type        = string
+  default     = "merida-container"
+}
+
+variable "ecs_container_image" {
+  description = "Container image to run"
+  type        = string
+  default     = "nginx:alpine"
+}
+
+variable "ecs_container_cpu" {
+  description = "CPU units reserved for the container (256, 512, 1024, etc.)"
+  type        = number
+  default     = 256
+}
+
+variable "ecs_container_memory" {
+  description = "Memory (MB) reserved for the container"
+  type        = number
+  default     = 512
+}
+
+variable "ecs_container_port" {
+  description = "Port the container listens on"
+  type        = number
+  default     = 80
+}
+
+variable "ecs_container_environment" {
+  description = "Environment variables for the container"
+  type        = list(map(string))
+  default     = []
+}
+
+variable "ecs_service_name" {
+  description = "Name of the ECS service"
+  type        = string
+  default     = "merida-service"
+}
+
+variable "ecs_desired_count" {
+  description = "Desired number of tasks for the service"
+  type        = number
+  default     = 1
+}
+
+variable "ecs_create_alb" {
+  description = "If true, create an ALB + target group and wire ECS service to it"
+  type        = bool
+  default     = false
+}
+
+variable "ecs_alb_name" {
+  description = "Name prefix for the ALB resources"
+  type        = string
+  default     = "merida-alb"
+}
+
+variable "ecs_alb_idle_timeout" {
+  description = "ALB idle timeout in seconds"
+  type        = number
+  default     = 60
+}
+
+variable "ecs_alb_enable_deletion_protection" {
+  description = "Enable deletion protection on ALB"
+  type        = bool
+  default     = false
+}
+
+variable "ecs_execution_role_arn" {
+  description = "ARN of the Task Execution role (used by ECS to pull images / write logs). Leave empty to use lab_role_arn"
+  type        = string
+  default     = ""
+}
+
+variable "ecs_task_role_arn" {
+  description = "ARN of the Task Role for the task (application permissions). Leave empty to use lab_role_arn"
+  type        = string
+  default     = ""
+}
+
+variable "ecs_health_check_enabled" {
+  description = "Whether health checks are enabled"
+  type        = bool
+  default     = true
+}
+
+variable "ecs_health_check_interval" {
+  description = "Approximate amount of time between health checks"
+  type        = number
+  default     = 30
+}
+
+variable "ecs_health_check_path" {
+  description = "Destination for the health check request"
+  type        = string
+  default     = "/"
+}
+
+variable "ecs_health_check_timeout" {
+  description = "Amount of time during which no response from a target means a failed health check"
+  type        = number
+  default     = 5
+}
+
+variable "ecs_health_check_healthy_threshold" {
+  description = "Number of consecutive health check successes required before considering a target healthy"
+  type        = number
+  default     = 2
+}
+
+variable "ecs_health_check_unhealthy_threshold" {
+  description = "Number of consecutive health check failures required before considering a target unhealthy"
+  type        = number
+  default     = 2
+}
+
+variable "ecs_health_check_matcher" {
+  description = "Response codes to use when checking for a healthy response"
+  type        = string
+  default     = "200-399"
+}
+
+variable "ecs_log_retention_days" {
+  description = "CloudWatch Logs retention in days"
+  type        = number
+  default     = 7
+}
+
+  # ===========================================
+  # ECR Configuration
+  # ===========================================
+
+  variable "ecr_repository_name" {
+    description = "Name of the ECR repository for backend image"
+    type        = string
+    default     = "merida-backend"
+  }
+
+  variable "ecr_image_tag_mutability" {
+    description = "ECR image tag mutability (MUTABLE or IMMUTABLE)"
+    type        = string
+    default     = "MUTABLE"
+  }
+
+  variable "ecr_scan_on_push" {
+    description = "Scan images on push to ECR"
+    type        = bool
+    default     = true
+  }
+
+  variable "ecr_encryption_type" {
+    description = "ECR encryption type (AES256 or KMS)"
+    type        = string
+    default     = "AES256"
+  }
+
+  variable "ecr_image_count" {
+    description = "Number of tagged images to keep in ECR"
+    type        = number
+    default     = 10
+  }
+
+  variable "ecr_untagged_image_days" {
+    description = "Number of days to keep untagged images in ECR"
+    type        = number
+    default     = 7
+  }

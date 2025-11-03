@@ -41,3 +41,182 @@ output "iot_rule_name" {
   description = "Name of the IoT rule"
   value       = module.iot_rule.rule_name
 }
+
+# ===========================================
+# VPC Network Outputs
+# ===========================================
+
+output "vpc_id" {
+  description = "ID of the main VPC"
+  value       = module.vpc.vpc_id
+}
+
+output "vpc_cidr_block" {
+  description = "CIDR block of the main VPC"
+  value       = module.vpc.vpc_cidr_block
+}
+
+output "private_subnet_a_id" {
+  description = "ID of Private Subnet A"
+  value       = module.vpc.private_subnet_a_id
+}
+
+output "private_subnet_b_id" {
+  description = "ID of Private Subnet B"
+  value       = module.vpc.private_subnet_b_id
+}
+
+output "public_subnet_a_id" {
+  description = "ID of Public Subnet A"
+  value       = module.vpc.public_subnet_a_id
+}
+
+output "public_subnet_b_id" {
+  description = "ID of Public Subnet B"
+  value       = module.vpc.public_subnet_b_id
+}
+
+output "private_subnet_ids" {
+  description = "List of private subnet IDs"
+  value       = module.vpc.private_subnet_ids
+}
+
+output "public_subnet_ids" {
+  description = "List of public subnet IDs"
+  value       = module.vpc.public_subnet_ids
+}
+
+output "internet_gateway_id" {
+  description = "ID of the Internet Gateway"
+  value       = module.vpc.internet_gateway_id
+}
+
+# NAT Gateway removed - using VPC Endpoints
+
+output "public_route_table_id" {
+  description = "ID of the public route table"
+  value       = module.vpc.public_route_table_id
+}
+
+output "private_route_table_id" {
+  description = "ID of the private route table"
+  value       = module.vpc.private_route_table_id
+}
+
+output "ecs_container_security_group_id" {
+  description = "ID of the ECS container security group"
+  value       = module.vpc.ecs_container_security_group_id
+}
+
+output "ecs_container_security_group_name" {
+  description = "Name of the ECS container security group"
+  value       = module.vpc.ecs_container_security_group_name
+}
+
+output "vpc_endpoints_security_group_id" {
+  description = "ID of the VPC endpoints security group"
+  value       = module.vpc.vpc_endpoints_security_group_id
+}
+
+output "vpc_endpoints_security_group_name" {
+  description = "Name of the VPC endpoints security group"
+  value       = module.vpc.vpc_endpoints_security_group_name
+}
+
+output "availability_zones" {
+  description = "List of availability zones used"
+  value       = module.vpc.availability_zones
+}
+
+# ===========================================
+# VPC Endpoints Outputs
+# ===========================================
+
+output "dynamodb_endpoint_id" {
+  description = "ID of the DynamoDB VPC endpoint"
+  value       = module.vpc.dynamodb_endpoint_id
+}
+
+output "dynamodb_endpoint_prefix_list_id" {
+  description = "Prefix list ID of the DynamoDB VPC endpoint"
+  value       = module.vpc.dynamodb_endpoint_prefix_list_id
+}
+
+output "s3_endpoint_id" {
+  description = "ID of the S3 VPC endpoint"
+  value       = module.vpc.s3_endpoint_id
+}
+
+output "s3_endpoint_prefix_list_id" {
+  description = "Prefix list ID of the S3 VPC endpoint"
+  value       = module.vpc.s3_endpoint_prefix_list_id
+}
+
+output "ecr_api_endpoint_id" {
+  description = "ID of the ECR API VPC endpoint"
+  value       = module.vpc.ecr_api_endpoint_id
+}
+
+output "ecr_dkr_endpoint_id" {
+  description = "ID of the ECR DKR VPC endpoint"
+  value       = module.vpc.ecr_dkr_endpoint_id
+}
+
+output "cloudwatch_logs_endpoint_id" {
+  description = "ID of the CloudWatch Logs VPC endpoint"
+  value       = module.vpc.cloudwatch_logs_endpoint_id
+}
+
+# ===========================================
+# ECS Outputs
+# ===========================================
+
+output "ecs_cluster_id" {
+  description = "ID of the ECS cluster"
+  value       = module.ecs.cluster_id
+}
+
+output "ecs_cluster_name" {
+  description = "Name of the ECS cluster"
+  value       = module.ecs.cluster_name
+}
+
+output "ecs_cluster_arn" {
+  description = "ARN of the ECS cluster"
+  value       = module.ecs.cluster_arn
+}
+
+output "ecs_task_definition_arn" {
+  description = "ARN of the task definition"
+  value       = module.ecs.task_definition_arn
+}
+
+output "ecs_service_id" {
+  description = "ID of the ECS service"
+  value       = module.ecs.service_id
+}
+
+output "ecs_service_name" {
+  description = "Name of the ECS service"
+  value       = module.ecs.service_name
+}
+
+output "ecs_alb_dns_name" {
+  description = "DNS name of the Application Load Balancer"
+  value       = module.ecs.alb_dns_name
+}
+
+output "ecs_alb_arn" {
+  description = "ARN of the Application Load Balancer"
+  value       = module.ecs.alb_arn
+}
+
+output "ecs_target_group_arn" {
+  description = "ARN of the target group"
+  value       = module.ecs.target_group_arn
+}
+
+output "ecs_log_group_name" {
+  description = "Name of the CloudWatch log group"
+  value       = module.ecs.log_group_name
+}

@@ -38,3 +38,6 @@ env/
 *.pem
 *.key
 
+app/infra/terraform/.terraform/
+app/infra/terraform/.terraform.lock.hcl
+app/infra/terraform/terraform.tfstate*
