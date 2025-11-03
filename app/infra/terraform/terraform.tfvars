@@ -16,8 +16,9 @@ lambda_runtime     = "python3.11"  # python3.11 is available in GitHub Actions a
 lambda_source_path = "../lambdas/lambda_iot_handler"
 
 # AWS Academy LabRole ARN
-# Get this from AWS Console: IAM > Roles > LabRole > Copy ARN
-# Valor se sobrescribe desde .env (TF_VAR_lab_role_arn)
+# For AWS Academy, the role ARN should be: arn:aws:iam::<ACCOUNT_ID>:role/LabRole
+# This value can be overridden from environment with TF_VAR_lab_role_arn
+# Note: If using voclabs assumed role, you may need to update this
 lab_role_arn = "arn:aws:iam::037689899742:role/LabRole"
 
 # DynamoDB Configuration
