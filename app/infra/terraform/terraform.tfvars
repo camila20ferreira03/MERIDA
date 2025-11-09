@@ -12,7 +12,7 @@ lambda_log_retention_days = 7
 # ZIP Deployment - Terraform empaqueta automáticamente
 # ====================================
 lambda_handler     = "app.lambda_handler"
-lambda_runtime     = "python3.11"  # python3.11 is available in GitHub Actions and AWS Lambda
+lambda_runtime     = "python3.11"
 lambda_source_path = "../lambdas/lambda_iot_handler"
 
 # Alert Processor Lambda Configuration
@@ -111,20 +111,20 @@ tags = {
 # Cognito Configuration
 # ===========================================
 cognito_user_pool_name = "merida-smart-grow-users"
-cognito_domain_prefix  = "" # Leave empty to skip domain creation
+cognito_domain_prefix  = ""
 cognito_callback_urls  = ["http://localhost:3000", "http://localhost:3000/"]
 cognito_logout_urls    = ["http://localhost:3000", "http://localhost:3000/"]
 
 # ===========================================
 # Amplify Configuration
 # ===========================================
-# Note: Set to false if AWS Academy doesn't support Amplify
-enable_amplify = false # Disabled by default - set to true after configuring
+# Set to true to deploy frontend to AWS Amplify
+enable_amplify = true
 
-# IMPORTANT: Update these values before enabling Amplify
 amplify_app_name           = "merida-smart-grow-frontend"
-amplify_repository_url     = "" # Add your repo URL: https://github.com/USERNAME/MERIDA
-github_access_token        = "" # Add your GitHub Personal Access Token
+amplify_repository_url     = "https://github.com/juanlu-a/MERIDA"
+# GitHub token comes from environment variable: TF_VAR_github_access_token
+# Set it in .env.local before running terraform (DO NOT set it here)
 amplify_main_branch        = "main"
 amplify_enable_pr_previews = false
 amplify_enable_auto_build  = true
