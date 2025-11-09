@@ -1,13 +1,13 @@
 from pydantic import BaseModel, Field
 from typing import List, Optional
 
-class User(BaseModel):
+class UserBase(BaseModel):
     user_id: str  # ID único
     name: str
     email: str
 
-class UserCreate(User):
+class UserCreate(UserBase):
     password: str  # si corresponde
 
-class UserRead(User):
+class UserRead(UserBase):
     facilities: Optional[List[str]] = []  # IDs de instalaciones asignadas

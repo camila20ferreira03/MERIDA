@@ -1,9 +1,10 @@
 import os
 from functools import lru_cache
-from dotenv import load_dotenv
-load_dotenv()
 
 import boto3
+
+
+_TABLE_ENV_VAR = "MERIDA_TABLE_NAME"
 
 
 @lru_cache(maxsize=1)
@@ -16,9 +17,9 @@ def _get_resource():
 
 @lru_cache(maxsize=1)
 def _get_table_name() -> str:
-    table_name = os.getenv("DYNAMO_TABLE_NAME")
+    table_name = os.getenv(_TABLE_ENV_VAR)
     if not table_name:
-        raise RuntimeError(f"Environment variable DYNAMO_TABLE_NAME must be set")
+        raise RuntimeError(f"Environment variable {_TABLE_ENV_VAR} must be set")
     return table_name
 
 
