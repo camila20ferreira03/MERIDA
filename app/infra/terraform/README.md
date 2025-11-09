@@ -7,7 +7,7 @@ Infrastructure as Code for the MERIDA Smart Grow IoT Platform using Terraform.
 The infrastructure consists of the following AWS services:
 
 - **DynamoDB** - Single-table design for storing IoT data and user information
-- **Lambda** - Processes messages from IoT devices
+- **Lambda** - Processes IoT ingestion and DynamoDB stream alerts
 - **IoT Core** - MQTT topic rules for device communication
 - **Cognito** - User authentication and authorization
 - **Amplify** - Frontend hosting and deployment
@@ -18,7 +18,6 @@ The infrastructure consists of the following AWS services:
 ### Required Tools
 
 1. **Terraform** >= 1.0
-
    ```bash
    # Install Terraform
    brew install terraform  # macOS
@@ -26,7 +25,6 @@ The infrastructure consists of the following AWS services:
    ```
 
 2. **AWS CLI**
-
    ```bash
    # Install AWS CLI
    brew install awscli  # macOS
@@ -50,78 +48,9 @@ This project is designed to work with AWS Academy Lab environments, which have s
 
 ## Quick Start
 
-### 1. First-Time Setup (Do Once)
+### 1. Configure AWS Credentials
 
-#### Step 1.1: Copy Environment Template
-
-```bash
-cp .env.example .env.local
-```
-
-#### Step 1.2: Set Persistent Configuration
-
-Edit `.env.local` and configure **one-time settings** that won't change:
-
-```bash
-# AWS Account ID and LabRole (stays the same)
-export TF_VAR_lab_role_arn="arn:aws:iam::037689899742:role/LabRole"
-
-# GitHub Personal Access Token (create once, use always)
-# Create at: https://github.com/settings/tokens
-# Required scopes: repo, admin:repo_hook
-export TF_VAR_github_access_token="ghp_your_token_here"
-
-# Python path (after installing Python 3.11)
-export PATH="/opt/homebrew/bin:$PATH"
-```
-
-### 2. Every Lab Session (AWS Academy Workflow)
-
-#### Step 2.1: Start AWS Academy Lab
-
-1. Go to AWS Academy Learner Lab
-2. Click **"Start Lab"** and wait for green light
-3. Click **"AWS Details"** → Copy credentials
-
-#### Step 2.2: Update AWS Credentials in .env.local
-
-Edit `.env.local` and update only the **AWS credentials section**:
-
-```bash
-# ⚠️ UPDATE THESE EVERY SESSION (they expire)
-export AWS_ACCESS_KEY_ID=ASIAQRRT6HLP...
-export AWS_SECRET_ACCESS_KEY=coRzy3FmnSlK...
-export AWS_SESSION_TOKEN=IQoJb3JpZ2luX2VjE...
-export AWS_DEFAULT_REGION=us-east-1
-```
-
-#### Step 2.3: Load Environment and Deploy
-
-```bash
-# Load credentials
-source .env.local
-
-# Navigate to terraform directory
-cd app/infra/terraform
-
-# Deploy infrastructure
-terraform plan
-terraform apply
-```
-
-**💡 Pro Tip**: Create an alias in your `~/.zshrc`:
-
-```bash
-alias awslab='source ~/path/to/MERIDA/.env.local && cd ~/path/to/MERIDA/app/infra/terraform'
-```
-
-Then just run: `awslab` → Update credentials → `terraform apply`
-
-### 3. Alternative: Helper Script (Legacy)
-
-### 3. Alternative: Helper Script (Legacy)
-
-For AWS Academy, you can also download credentials file and use the helper script:
+For AWS Academy, download your credentials file and run:
 
 ```bash
 # Option 1: Use our helper script
@@ -203,24 +132,44 @@ modules/
 └── s3/          - S3 buckets (future)
 ```
 
+### Lambda Functions
+
+- **IoT Handler (`lambda_iot_handler`)**  
+  Receives MQTT payloads from IoT Core, normalizes the message and stores it in the `SmartGrowData` DynamoDB table using the single-table design.
+
+- **Alert Processor (`lambda_alert_processor`)**  
+  Subscribed to the DynamoDB stream of `SmartGrowData`. When a new plot state (`PK = PLOT#<id>`, `SK = STATE#<timestamp>`) is inserted, it:
+  1. Reads the live measurements (temperature, humidity, light, irrigation, etc.).
+  2. Fetches the ideal parameters for the species (`PK = FACILITY#<facility_id>`, `SK = SPECIES#<id>`).
+  3. Applies the tolerance defined by `alert_lambda_tolerance` (default ±10%).
+  4. If a deviation exists, lists all Cognito users and publishes an email alert through the `merida-alerts-topic` SNS topic.
+
+Environment variables injected by Terraform:
+
+| Variable            | Description                                                    |
+|---------------------|----------------------------------------------------------------|
+| `DYNAMO_TABLE_NAME` | DynamoDB table name (SmartGrowData)                            |
+| `USER_POOL_ID`      | Cognito User Pool ID used to fetch user emails                 |
+| `ALERTS_TOPIC_ARN`  | SNS topic that delivers alert emails                           |
+| `TOLERANCE_PERCENT` | Decimal tolerance applied to compare live vs. ideal readings   |
+
+IAM permissions granted to the alert processor Lambda allow it to query DynamoDB, list Cognito users, publish to SNS, and write CloudWatch Logs.
+
 ### Cognito Module
 
 Creates a Cognito User Pool with:
-
 - Email verification
 - Password recovery
 - Secure password policy
 - User Pool Client for web applications
 
 **Outputs:**
-
 - `cognito_user_pool_id` - User Pool ID (needed for frontend)
 - `cognito_client_id` - Client ID (needed for frontend)
 
 ### Amplify Module
 
 Creates an AWS Amplify App with:
-
 - GitHub integration
 - Automatic builds on push
 - Environment variables injection
@@ -242,20 +191,42 @@ terraform output amplify_app_url
 
 # Get DynamoDB table name
 terraform output dynamodb_table_name
+
+# Get alert processing resources
+terraform output alert_lambda_function_name
+terraform output alerts_sns_topic_arn
 ```
+
+## DynamoDB Table Structure
+
+La tabla `SmartGrowData` sigue un diseño de tabla única. Las claves principales (`PK`, `SK`) y atributos auxiliares se reutilizan para múltiples tipos de entidad:
+
+| Caso de uso                               | `PK` ejemplo              | `SK` ejemplo                      | Comentarios clave |
+|-------------------------------------------|---------------------------|-----------------------------------|-------------------|
+| Estado de una parcela (ingestión IoT)     | `PLOT#<plot_id>`          | `STATE#<timestamp>`               | Contiene lecturas como `temperature`, `humidity`, `light`, `irrigation`, `SpeciesId`, `FacilityId`, además de `Timestamp`. |
+| Eventos asociados (riego, etc.)           | `PLOT#<plot_id>`          | `EVENT#<timestamp>`               | Prefija atributos específicos (`irrigation_amount`, etc.). |
+| Parámetros ideales por especie/facilidad  | `FACILITY#<facility_id>`  | `SPECIES#<species_id>`            | Atributos como `IdealTemperature`, `IdealHumidity`, `IdealLight`, `IdealIrrigation`. El Lambda de alertas consulta estos valores. |
+| Perfil global de especie (fallback)       | `SPECIES#<species_id>`    | `PROFILE`                         | Útil cuando no hay registro específico por instalación. |
+| Relación negocio → instalaciones/usuarios | `BUSINESS#<business_id>`  | `FACILITY#<facility_id>`          | Puede almacenar colecciones de usuarios (`Users`) u otros metadatos del negocio. |
+
+Índices secundarios:
+
+- `GSI_PK` / `GSI_SK`: permiten consultas adicionales. Por ejemplo, las mediciones IoT guardan `GSI_PK = FACILITY#<facility_id>` y `GSI_SK = TIMESTAMP#<timestamp>` para obtener históricos por instalación ordenados por tiempo.
+
+Streams y automatizaciones:
+
+- La tabla tiene **DynamoDB Streams** habilitado (`NEW_AND_OLD_IMAGES`). El módulo `lambda_alert_processor` se activa en cada `INSERT` de estados (`STATE#`) para verificar desviaciones y publicar alertas por SNS/Cognito.
 
 ## Updating Frontend Configuration
 
 After deploying infrastructure:
 
 1. Get Terraform outputs:
-
    ```bash
    terraform output
    ```
 
 2. Update frontend `.env` file:
-
    ```bash
    cd ../../web
    cp .env.example .env
@@ -311,13 +282,11 @@ For Amplify to access your repository:
 AWS Academy might not support AWS Amplify. Solutions:
 
 1. **Disable Amplify module:**
-
    ```hcl
    enable_amplify = false
    ```
 
 2. **Use Amplify Console UI instead:**
-
    - Go to AWS Amplify Console
    - Click "New app" → "Host web app"
    - Connect your GitHub repository
@@ -370,7 +339,6 @@ terraform apply
 Currently using **local state** (terraform.tfstate file).
 
 **Important:**
-
 - Do NOT commit `terraform.tfstate` to Git
 - Backup your state file regularly
 - Consider using remote state for team collaboration
@@ -404,7 +372,6 @@ terraform destroy
 ```
 
 **Warning:** This will delete:
-
 - Cognito User Pool (all users will be deleted)
 - DynamoDB table (all data will be deleted)
 - Amplify app
@@ -443,7 +410,6 @@ When modifying infrastructure:
 ## Support
 
 For issues or questions:
-
 1. Check the troubleshooting section above
 2. Review Terraform and AWS documentation
 3. Create an issue in the GitHub repository

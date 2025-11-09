@@ -39,40 +39,6 @@ resource "aws_internet_gateway" "main" {
     }
   )
 }
-# ===========================================
-# Elastic IP for NAT Gateway
-# ===========================================
-resource "aws_eip" "nat" {
-  domain = "vpc"
-
-  tags = merge(
-    var.tags,
-    {
-      Name  = "${var.vpc_name}-NAT-EIP"
-      Owner = "Demo"
-    }
-  )
-
-  depends_on = [aws_internet_gateway.main]
-}
-
-# ===========================================
-# NAT Gateway (SOLO en AZ-A)
-# ===========================================
-resource "aws_nat_gateway" "main" {
-  allocation_id = aws_eip.nat.id
-  subnet_id     = aws_subnet.public_a.id
-
-  tags = merge(
-    var.tags,
-    {
-      Name  = "${var.vpc_name}-NAT"
-      Owner = "Demo"
-    }
-  )
-
-  depends_on = [aws_internet_gateway.main]
-}
 
 # ===========================================
 # Public Subnets
@@ -180,10 +146,39 @@ resource "aws_route" "public_internet_gateway" {
   gateway_id             = aws_internet_gateway.main.id
 }
 
+# NAT Gateway resources (single AZ to minimize cost)
+resource "aws_eip" "nat" {
+  domain = "vpc"
+
+  tags = merge(
+    var.tags,
+    {
+      Name = "${var.vpc_name}-NatEip"
+    }
+  )
+}
+
+resource "aws_nat_gateway" "this" {
+  allocation_id = aws_eip.nat.id
+  subnet_id     = aws_subnet.public_a.id
+
+  tags = merge(
+    var.tags,
+    {
+      Name = "${var.vpc_name}-NatGw"
+    }
+  )
+
+  depends_on = [
+    aws_internet_gateway.main,
+    aws_route_table.public
+  ]
+}
+
 resource "aws_route" "private_nat_gateway" {
   route_table_id         = aws_route_table.private.id
   destination_cidr_block = "0.0.0.0/0"
-  nat_gateway_id         = aws_nat_gateway.main.id
+  nat_gateway_id         = aws_nat_gateway.this.id
 }
 
 # ===========================================
@@ -238,58 +233,19 @@ resource "aws_security_group" "ecs_container" {
   )
 }
 
-# Security Group for VPC Endpoints (Interface endpoints)
-# - Allow traffic from ECS tasks to endpoints
-resource "aws_security_group" "vpc_endpoints" {
-  name        = "${var.vpc_name}-VPCEndpointsSG"
-  description = "Security group for VPC Interface Endpoints"
-  vpc_id      = aws_vpc.main.id
-
-  ingress {
-    description     = "Allow HTTPS from ECS tasks"
-    from_port       = 443
-    to_port         = 443
-    protocol        = "tcp"
-    security_groups = [aws_security_group.ecs_container.id]
-  }
-
-  egress {
-    description = "Allow all outbound traffic"
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = merge(
-    var.tags,
-    {
-      Name  = "${var.vpc_name}-VPCEndpointsSG"
-      Owner = "Demo"
-    }
-  )
-}
+# ===========================================
+# VPC Endpoints - Architecture without NAT Gateway
+# ===========================================
+# ECS tasks in private subnets access AWS services via VPC Endpoints
+# Gateway endpoints (S3, DynamoDB): No cost, route table based
+# Interface endpoints: Private IPs in subnets, DNS enabled, cost per hour/GB
 
 # ===========================================
-# VPC Endpoints (Gateway) - Sin costo adicional
+# Gateway Endpoints (No cost, route table based)
 # ===========================================
 
-# DynamoDB Gateway Endpoint - Para que ECS acceda a DynamoDB sin usar NAT
-resource "aws_vpc_endpoint" "dynamodb" {
-  vpc_id            = aws_vpc.main.id
-  service_name      = "com.amazonaws.${var.aws_region}.dynamodb"
-  vpc_endpoint_type = "Gateway"
-  route_table_ids   = [aws_route_table.private.id]
-
-  tags = merge(
-    var.tags,
-    {
-      Name = "${var.vpc_name}-DynamoDB-Endpoint"
-    }
-  )
-}
-
-# S3 Gateway Endpoint - Para logs de ECS sin usar NAT
+# S3 Gateway Endpoint - For ECR image layers and logs
+# Required for ECR to pull image layers from S3 without internet access
 resource "aws_vpc_endpoint" "s3" {
   vpc_id            = aws_vpc.main.id
   service_name      = "com.amazonaws.${var.aws_region}.s3"
@@ -299,83 +255,29 @@ resource "aws_vpc_endpoint" "s3" {
   tags = merge(
     var.tags,
     {
-      Name = "${var.vpc_name}-S3-Endpoint"
+      Name = "${var.vpc_name}-S3-Gateway-Endpoint"
     }
   )
+
+  depends_on = [aws_vpc.main, aws_route_table.private]
 }
 
-# ===========================================
-# VPC Endpoints (Interface) - ECR para pull de imágenes
-# ===========================================
-
-# ECR API endpoint - para autenticación y metadata
-resource "aws_vpc_endpoint" "ecr_api" {
-  vpc_id              = aws_vpc.main.id
-  service_name        = "com.amazonaws.${var.aws_region}.ecr.api"
-  vpc_endpoint_type   = "Interface"
-  subnet_ids          = [aws_subnet.private_a.id, aws_subnet.private_b.id]
-  security_group_ids  = [aws_security_group.vpc_endpoints.id]
-  private_dns_enabled = true
+# DynamoDB Gateway Endpoint - For Lambda/ECS to access DynamoDB tables
+resource "aws_vpc_endpoint" "dynamodb" {
+  vpc_id            = aws_vpc.main.id
+  service_name      = "com.amazonaws.${var.aws_region}.dynamodb"
+  vpc_endpoint_type = "Gateway"
+  route_table_ids   = [aws_route_table.private.id]
 
   tags = merge(
     var.tags,
     {
-      Name = "${var.vpc_name}-ECR-API-Endpoint"
+      Name = "${var.vpc_name}-DynamoDB-Gateway-Endpoint"
     }
   )
+
+  depends_on = [aws_vpc.main, aws_route_table.private]
 }
-
-# ECR DKR endpoint - para pull/push de imágenes
-resource "aws_vpc_endpoint" "ecr_dkr" {
-  vpc_id              = aws_vpc.main.id
-  service_name        = "com.amazonaws.${var.aws_region}.ecr.dkr"
-  vpc_endpoint_type   = "Interface"
-  subnet_ids          = [aws_subnet.private_a.id, aws_subnet.private_b.id]
-  security_group_ids  = [aws_security_group.vpc_endpoints.id]
-  private_dns_enabled = true
-
-  tags = merge(
-    var.tags,
-    {
-      Name = "${var.vpc_name}-ECR-DKR-Endpoint"
-    }
-  )
-}
-
-# CloudWatch Logs endpoint - para logs de contenedores
-resource "aws_vpc_endpoint" "cloudwatch_logs" {
-  vpc_id              = aws_vpc.main.id
-  service_name        = "com.amazonaws.${var.aws_region}.logs"
-  vpc_endpoint_type   = "Interface"
-  subnet_ids          = [aws_subnet.private_a.id, aws_subnet.private_b.id]
-  security_group_ids  = [aws_security_group.vpc_endpoints.id]
-  private_dns_enabled = true
-
-  tags = merge(
-    var.tags,
-    {
-      Name = "${var.vpc_name}-CloudWatch-Logs-Endpoint"
-    }
-  )
-}
-
-# IoT Core endpoint - DISABLED: IoT Core VPC Endpoint not available in all regions
-# IoT Core can still be accessed over the internet gateway
-# resource "aws_vpc_endpoint" "iot_core" {
-#   vpc_id              = aws_vpc.main.id
-#   service_name        = "com.amazonaws.${var.aws_region}.iot"
-#   vpc_endpoint_type   = "Interface"
-#   subnet_ids          = [aws_subnet.private_a.id, aws_subnet.private_b.id]
-#   security_group_ids  = [aws_security_group.vpc_endpoints.id]
-#   private_dns_enabled = true
-#
-#   tags = merge(
-#     var.tags,
-#     {
-#       Name = "${var.vpc_name}-IoT-Core-Endpoint"
-#     }
-#   )
-# }
 
 # ===========================================
 # Data Sources

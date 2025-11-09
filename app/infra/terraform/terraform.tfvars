@@ -12,8 +12,19 @@ lambda_log_retention_days = 7
 # ZIP Deployment - Terraform empaqueta automáticamente
 # ====================================
 lambda_handler     = "app.lambda_handler"
-lambda_runtime     = "python3.11"
+lambda_runtime     = "python3.10"  # Ajustado para coincidir con la versión instalada localmente
 lambda_source_path = "../lambdas/lambda_iot_handler"
+
+# Alert Processor Lambda Configuration
+alert_lambda_function_name      = "PlotAlertProcessor"
+alert_lambda_handler            = "app.lambda_handler"
+alert_lambda_runtime            = "python3.10"
+alert_lambda_source_path        = "../lambdas/lambda_alert_processor"
+alert_lambda_timeout            = 30
+alert_lambda_memory_size        = 256
+alert_lambda_log_retention_days = 14
+alert_lambda_tolerance          = 0.1
+alert_lambda_batch_size         = 10
 
 # AWS Academy LabRole ARN
 # For AWS Academy, the role ARN should be: arn:aws:iam::<ACCOUNT_ID>:role/LabRole
@@ -52,7 +63,6 @@ ecs_enable_container_insights = false
 ecs_task_family               = "merida-task"
 ecs_container_name            = "merida-container"
 # Valor se sobrescribe desde .env (TF_VAR_ecs_container_image)
-ecs_container_image  = "000000000000.dkr.ecr.us-east-1.amazonaws.com/merida-backend:latest"
 ecs_container_cpu    = 256
 ecs_container_memory = 512
 ecs_container_port   = 80
@@ -67,6 +77,9 @@ ecs_create_alb                       = true
 ecs_alb_name                         = "merida-alb"
 ecs_alb_idle_timeout                 = 60
 ecs_alb_enable_deletion_protection   = false
+ecs_alb_certificate_arn              = "arn:aws:acm:us-east-1:037689899742:certificate/9f83fde6-4a25-434f-9cfd-55735a43d70a"
+# ecs_alb_ssl_policy puede ajustarse si es necesario
+ecs_alb_ssl_policy                   = "ELBSecurityPolicy-2016-08"
 ecs_execution_role_arn               = "" # Usa lab_role_arn por defecto
 ecs_task_role_arn                    = "" # Usa lab_role_arn por defecto
 ecs_health_check_enabled             = true
@@ -80,6 +93,7 @@ ecs_log_retention_days               = 7
 
 # ECR Configuration
 ecr_repository_name      = "merida-backend"
+ecr_create_repository    = true
 ecr_image_tag_mutability = "MUTABLE"
 ecr_scan_on_push         = true
 ecr_encryption_type      = "AES256"
@@ -97,23 +111,23 @@ tags = {
 # Cognito Configuration
 # ===========================================
 cognito_user_pool_name = "merida-smart-grow-users"
-cognito_domain_prefix  = ""
+cognito_domain_prefix  = "" # Leave empty to skip domain creation
 cognito_callback_urls  = ["http://localhost:3000", "http://localhost:3000/"]
 cognito_logout_urls    = ["http://localhost:3000", "http://localhost:3000/"]
 
 # ===========================================
 # Amplify Configuration
 # ===========================================
-# Set to true to deploy frontend to AWS Amplify
-enable_amplify = true
+# Note: Set to false if AWS Academy doesn't support Amplify
+enable_amplify = false # Disabled by default - set to true after configuring
 
+# IMPORTANT: Update these values before enabling Amplify
 amplify_app_name           = "merida-smart-grow-frontend"
-amplify_repository_url     = "https://github.com/juanlu-a/MERIDA"
-# GitHub token comes from environment variable: TF_VAR_github_access_token
-# Set it in .env.local before running terraform (DO NOT set it here)
+amplify_repository_url     = "" # Add your repo URL: https://github.com/USERNAME/MERIDA
+github_access_token        = "" # Add your GitHub Personal Access Token
 amplify_main_branch        = "main"
 amplify_enable_pr_previews = false
 amplify_enable_auto_build  = true
 
 # API Configuration
-api_base_url = "http://localhost:8000" # Update with your API Gateway URL later
+api_base_url = "meridaproject.ddns.net" # Update with your API Gateway URL later
