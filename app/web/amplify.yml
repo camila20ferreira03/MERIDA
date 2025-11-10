@@ -4,18 +4,17 @@ applications:
       phases:
         preBuild:
           commands:
-            - cd app/web
             - npm install -g pnpm@latest
             - pnpm install --frozen-lockfile
         build:
           commands:
             - pnpm run build
       artifacts:
-        baseDirectory: app/web/dist
+        baseDirectory: dist
         files:
           - '**/*'
       cache:
         paths:
-          - app/web/node_modules/**/*
+          - node_modules/**/*
           - ~/.pnpm-store/**/*
     appRoot: app/web
