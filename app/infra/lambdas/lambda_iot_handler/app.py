@@ -70,40 +70,14 @@ def get_plot_metadata(plot_id):
     try:
         print(f"Fetching metadata for plot_id: {plot_id}")
         
-        # Method 1: Try GSI_TypeIndex query with filter
-        response = table.query(
-            IndexName='GSI_TypeIndex',
-            KeyConditionExpression='#type = :type',
-            FilterExpression='plot_id = :plot_id',
-            ExpressionAttributeNames={'#type': 'type'},
-            ExpressionAttributeValues={
-                ':type': 'PLOT',
-                ':plot_id': plot_id
-            },
-            Limit=1
-        )
-        
-        items = response.get('Items', [])
-        if items:
-            plot = items[0]
-            metadata = {
-                'facility_id': plot.get('facility_id'),
-                'species': plot.get('species'),
-                'name': plot.get('name')
-            }
-            print(f"Found metadata via GSI: {metadata}")
-            return metadata
-        
-        # Method 2: Scan with filter (less efficient but works if GSI fails)
-        print(f"GSI query returned no results, trying scan...")
+        # Method 1: Scan with filter (most reliable - finds the FACILITY#/PLOT# record)
         response = table.scan(
             FilterExpression='plot_id = :plot_id AND #type = :type',
             ExpressionAttributeNames={'#type': 'type'},
             ExpressionAttributeValues={
                 ':plot_id': plot_id,
                 ':type': 'PLOT'
-            },
-            Limit=1
+            }
         )
         
         items = response.get('Items', [])
@@ -115,6 +89,30 @@ def get_plot_metadata(plot_id):
                 'name': plot.get('name')
             }
             print(f"Found metadata via scan: {metadata}")
+            return metadata
+        
+        # Method 2: Try GSI_TypeIndex query with filter (fallback)
+        print(f"Scan returned no results, trying GSI query...")
+        response = table.query(
+            IndexName='GSI_TypeIndex',
+            KeyConditionExpression='#type = :type',
+            FilterExpression='plot_id = :plot_id',
+            ExpressionAttributeNames={'#type': 'type'},
+            ExpressionAttributeValues={
+                ':type': 'PLOT',
+                ':plot_id': plot_id
+            }
+        )
+        
+        items = response.get('Items', [])
+        if items:
+            plot = items[0]
+            metadata = {
+                'facility_id': plot.get('facility_id'),
+                'species': plot.get('species'),
+                'name': plot.get('name')
+            }
+            print(f"Found metadata via GSI: {metadata}")
             return metadata
         
         print(f"No metadata found for plot_id: {plot_id}")
