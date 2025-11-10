@@ -36,14 +36,14 @@ def lambda_handler(event, context):
         # Save to DynamoDB
         response = table.put_item(Item=item)
         
-        print(f"Successfully saved item to DynamoDB: PK={item['PK']}, SK={item['SK']}")
+        print(f"Successfully saved item to DynamoDB: pk={item['pk']}, sk={item['sk']}")
         
         return {
             'statusCode': 200,
             'body': json.dumps({
                 'message': 'Data saved successfully',
-                'PK': item['PK'],
-                'SK': item['SK']
+                'pk': item['pk'],
+                'sk': item['sk']
             })
         }
         
@@ -65,29 +65,82 @@ def extract_plot_id_from_event(event):
     return str(event.get('plot_id', 'UNKNOWN'))
 
 
+def get_plot_metadata(plot_id):
+    """Fetch plot metadata from DynamoDB to get facility_id"""
+    try:
+        # Query to find the plot - we need to search across facilities
+        # Try direct query first with PLOT# prefix
+        response = table.query(
+            IndexName='GSI_TypeIndex',
+            KeyConditionExpression='#type = :type',
+            FilterExpression='plot_id = :plot_id',
+            ExpressionAttributeNames={'#type': 'type'},
+            ExpressionAttributeValues={
+                ':type': 'PLOT',
+                ':plot_id': plot_id
+            },
+            Limit=1
+        )
+        
+        items = response.get('Items', [])
+        if items:
+            plot = items[0]
+            return {
+                'facility_id': plot.get('facility_id'),
+                'species': plot.get('species'),
+                'name': plot.get('name')
+            }
+    except Exception as e:
+        print(f"Error fetching plot metadata for {plot_id}: {e}")
+    
+    return None
+
+
 def format_for_dynamodb(payload, plot_id):
     """
     Format the payload for DynamoDB using Single-Table Design
     
     Handles two types of messages:
-    1. "state" - Sensor data readings
-    2. "event" - Events like irrigation
+    1. "state" - Sensor data readings (sensor_data field or sensor fields)
+    2. "event" - Events like irrigation (event_type or irrigation fields)
     
     DynamoDB structure:
-    - PK: PLOT#<plot_id>
-    - SK: STATE#<timestamp> or EVENT#<timestamp>
+    - pk: PLOT#<plot_id>
+    - sk: STATE#<timestamp> or EVENT#<timestamp>
     - GSI_PK: FACILITY#<facility_id>
     - GSI_SK: TIMESTAMP#<timestamp>
     - Type-specific data as top-level attributes
     """
-    # Use provided timestamp or generate new one
+    # Use provided timestamp or generate new one automatically
     if 'timestamp' in payload and payload['timestamp']:
         timestamp = payload['timestamp']
     else:
         timestamp = datetime.utcnow().isoformat() + 'Z'
+        print(f"Generated automatic timestamp: {timestamp}")
     
-    # Get message type (default to 'state' for backwards compatibility)
-    message_type = payload.get('type', 'state')
+    # Auto-detect message type based on content
+    # If it has event_type or irrigation fields, it's an event
+    # If it has sensor_data or sensor fields, it's state
+    if 'event_type' in payload or 'duration' in payload or 'water_amount' in payload:
+        message_type = 'event'
+        print(f"Auto-detected message type: event (irrigation)")
+    elif 'type' in payload:
+        message_type = payload['type']
+    else:
+        message_type = 'state'  # default for backwards compatibility
+    
+    # If facility_id is not in payload, fetch it from plot metadata
+    if 'facility_id' not in payload or not payload.get('facility_id'):
+        print(f"facility_id not in payload, fetching from plot metadata for plot {plot_id}")
+        plot_metadata = get_plot_metadata(plot_id)
+        if plot_metadata:
+            if plot_metadata.get('facility_id'):
+                payload['facility_id'] = plot_metadata['facility_id']
+                print(f"Found facility_id: {plot_metadata['facility_id']}")
+            if plot_metadata.get('species') and 'species_id' not in payload:
+                payload['species_id'] = plot_metadata['species']
+            if plot_metadata.get('name') and 'plot_name' not in payload:
+                payload['plot_name'] = plot_metadata['name']
     
     # Convert numeric values to Decimal for DynamoDB compatibility
     def convert_to_decimal(obj):
@@ -112,7 +165,7 @@ def format_for_dynamodb(payload, plot_id):
 
     # Create base DynamoDB item
     item = {
-        'PK': f'PLOT#{plot_id}',
+        'pk': f'PLOT#{plot_id}',
         'Timestamp': timestamp,
         'GSI_SK': f'TIMESTAMP#{timestamp}',
     }
@@ -146,7 +199,7 @@ def format_for_dynamodb(payload, plot_id):
     # Process based on message type
     if message_type == 'state':
         # STATE message: sensor readings
-        item['SK'] = f'STATE#{timestamp}'
+        item['sk'] = f'STATE#{timestamp}'
         sensor_data = payload.get('sensor_data', {})
         sensor_data_converted = convert_to_decimal(sensor_data)
         if isinstance(sensor_data_converted, dict):
@@ -154,24 +207,26 @@ def format_for_dynamodb(payload, plot_id):
     
     elif message_type == 'event':
         # EVENT message: irrigation, alerts, etc.
-        item['SK'] = f'EVENT#{timestamp}'
+        item['sk'] = f'EVENT#{timestamp}'
         
-        # Add irrigation data if present
-        if 'irrigation' in payload:
-            irrigation_data = convert_to_decimal(payload['irrigation'])
-            if isinstance(irrigation_data, dict):
-                # Prefix irrigation fields to avoid conflicts
-                for key, value in irrigation_data.items():
-                    item[f'irrigation_{key}'] = value
+        # Map irrigation fields to DynamoDB format (both snake_case and PascalCase)
+        irrigation_field_map = {
+            'event_type': 'EventType',
+            'duration': 'Duration',
+            'water_amount': 'WaterAmount',
+            'type': 'IrrigationType',  # Changed from 'type' to avoid conflict
+        }
         
-        # Add any other event data
+        # Add all event fields to the item
         for key, value in payload.items():
-            if key not in ['type', 'plot_id', 'timestamp', 'irrigation']:
-                item[key] = convert_to_decimal(value)
+            if key not in ['plot_id', 'timestamp', 'facility_id', 'species_id', 'business_id', 'plot_name']:
+                # Use mapped name if available, otherwise use original key
+                target_key = irrigation_field_map.get(key, key)
+                item[target_key] = convert_to_decimal(value)
     
     else:
-        # Unknown type, use generic SK
-        item['SK'] = f'DATA#{timestamp}'
+        # Unknown type, use generic sk
+        item['sk'] = f'DATA#{timestamp}'
         print(f"Warning: Unknown message type '{message_type}'")
     
     return item

@@ -6,7 +6,9 @@ import { MainLayout } from '@/layouts/MainLayout'
 import { AuthLayout } from '@/layouts/AuthLayout'
 import { LoginPage } from '@/pages/Auth/LoginPage'
 import { DashboardPage } from '@/pages/Dashboard/DashboardPage'
-import { PlotsPage } from '@/pages/Plots/PlotsPage'
+import { SpeciesPage } from '@/pages/Species/SpeciesPage'
+import { ResponsiblesPage } from '@/pages/Responsibles/ResponsiblesPage'
+import { ManagementPage } from '@/pages/Management/ManagementPage'
 import '@/config/auth'
 
 const queryClient = new QueryClient({
@@ -37,11 +39,12 @@ function App() {
                   <MainLayout />
                 </ProtectedRoute>
               }
-            >
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/plots" element={<PlotsPage />} />
-              <Route path="/settings" element={<div>Settings (Coming Soon)</div>} />
-            </Route>
+                  >
+                    <Route path="/dashboard" element={<DashboardPage />} />
+                    <Route path="/management" element={<ManagementPage />} />
+                    <Route path="/species" element={<SpeciesPage />} />
+                    <Route path="/responsibles" element={<ResponsiblesPage />} />
+                  </Route>
 
             {/* Redirect root to dashboard */}
             <Route path="/" element={<Navigate to="/dashboard" replace />} />

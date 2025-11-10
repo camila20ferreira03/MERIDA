@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from boto3.dynamodb.conditions import Key, Attr
-from src.schemas.species import SpeciesBase, SpeciesCreate
+from src.schemas.species import SpeciesBase, SpeciesCreate, SpeciesThresholdsUpdate
 from src.dal.database import table
 from botocore.exceptions import ClientError
 from uuid import uuid4
+from decimal import Decimal
 
 """
 🌿 Especies
@@ -133,3 +134,87 @@ async def assign_species_to_plot(species_id: str, facility_id: str, plot_id: str
 
     except ClientError as e:
         raise HTTPException(status_code=500, detail=f"Error assigning species to plot: {e}")
+
+@router.get("/{species_id}/thresholds", description="Obtener umbrales de una especie")
+async def get_species_thresholds(species_id: str, facility_id: str = None):
+    """
+    Obtiene los umbrales ideales para una especie.
+    Busca primero en facility+species, luego en species global.
+    """
+    try:
+        # Intentar primero con facility específica (si se proporciona)
+        if facility_id:
+            response = table.get_item(
+                Key={
+                    "pk": f"FACILITY#{facility_id}",
+                    "sk": f"SPECIES#{species_id}"
+                }
+            )
+            if "Item" in response:
+                return response["Item"]
+        
+        # Buscar en perfil global de la especie
+        response = table.get_item(
+            Key={
+                "pk": f"SPECIES#{species_id}",
+                "sk": "PROFILE"
+            }
+        )
+        
+        if "Item" not in response:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"Thresholds not found for species {species_id}"
+            )
+        
+        return response["Item"]
+    
+    except ClientError as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching thresholds: {e}")
+
+@router.put("/{species_id}/thresholds", description="Crear/actualizar umbrales de una especie")
+async def update_species_thresholds(species_id: str, thresholds: SpeciesThresholdsUpdate, facility_id: str = None):
+    """
+    Crea o actualiza los umbrales ideales para una especie.
+    Si se proporciona facility_id, crea umbrales específicos para esa facility.
+    """
+    try:
+        # Verificar que la especie exista
+        species_response = table.get_item(
+            Key={"pk": f"SPECIES#{species_id}", "sk": "Metadata"}
+        )
+        
+        if "Item" not in species_response:
+            raise HTTPException(status_code=404, detail="Species not found")
+        
+        # Preparar la clave según si es global o específica de facility
+        if facility_id:
+            pk = f"FACILITY#{facility_id}"
+            sk = f"SPECIES#{species_id}"
+        else:
+            pk = f"SPECIES#{species_id}"
+            sk = "PROFILE"
+        
+        # Convertir valores a Decimal para DynamoDB
+        threshold_data = thresholds.model_dump(exclude_unset=True)
+        item = {
+            "pk": pk,
+            "sk": sk,
+            "species_id": species_id,
+            "type": "SPECIES_THRESHOLDS"
+        }
+        
+        # Agregar umbrales si se proporcionaron
+        for key, value in threshold_data.items():
+            if value is not None:
+                item[key] = Decimal(str(value))
+        
+        table.put_item(Item=item)
+        
+        return {
+            "message": "Thresholds updated successfully",
+            "thresholds": item
+        }
+    
+    except ClientError as e:
+        raise HTTPException(status_code=500, detail=f"Error updating thresholds: {e}")

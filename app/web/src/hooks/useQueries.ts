@@ -1,7 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { plotService } from '@/services/plotService'
 import { userService } from '@/services/userService'
-import type { CreatePlotRequest, UpdatePlotRequest } from '@/types'
+import { facilityService } from '@/services/facilityService'
+import { irrigationService } from '@/services/irrigationService'
+import type { CreatePlotRequest, UpdatePlotRequest, CreateFacilityRequest } from '@/types'
 
 // User queries
 export function useUser(userId: string) {
@@ -34,7 +36,7 @@ export function usePlotState(plotId: string) {
     queryKey: ['plotState', plotId],
     queryFn: () => plotService.getPlotState(plotId),
     enabled: !!plotId,
-    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchInterval: 900000, // Refetch every 15 minutes
   })
 }
 
@@ -43,6 +45,7 @@ export function usePlotHistory(plotId: string, startDate?: string, endDate?: str
     queryKey: ['plotHistory', plotId, startDate, endDate],
     queryFn: () => plotService.getPlotHistory(plotId, startDate, endDate),
     enabled: !!plotId,
+    refetchInterval: 900000, // Refetch every 15 minutes
   })
 }
 
@@ -79,5 +82,111 @@ export function useDeletePlot() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['plots'] })
     },
+  })
+}
+
+// Facility queries
+export function useFacilities() {
+  return useQuery({
+    queryKey: ['facilities'],
+    queryFn: () => facilityService.getFacilities(),
+  })
+}
+
+export function useFacility(facilityId: string) {
+  return useQuery({
+    queryKey: ['facility', facilityId],
+    queryFn: () => facilityService.getFacility(facilityId),
+    enabled: !!facilityId,
+  })
+}
+
+export function useFacilityPlots(facilityId: string) {
+  return useQuery({
+    queryKey: ['facilityPlots', facilityId],
+    queryFn: () => facilityService.getFacilityPlots(facilityId),
+    enabled: !!facilityId,
+  })
+}
+
+// Facility mutations
+export function useCreateFacility() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (data: CreateFacilityRequest) => facilityService.createFacility(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['facilities'] })
+    },
+  })
+}
+
+// Plot thresholds query
+export function usePlotThresholds(plotId: string) {
+  return useQuery({
+    queryKey: ['plotThresholds', plotId],
+    queryFn: () => plotService.getPlotThresholds(plotId),
+    enabled: !!plotId,
+  })
+}
+
+// Plot thresholds mutation
+export function useUpdatePlotThresholds() {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: ({ plotId, thresholds }: { plotId: string; thresholds: any }) =>
+      plotService.updatePlotThresholds(plotId, thresholds),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['plotThresholds', variables.plotId] })
+    },
+  })
+}
+
+// Facility responsibles queries
+export function useFacilityResponsibles(facilityId: string) {
+  return useQuery({
+    queryKey: ['facilityResponsibles', facilityId],
+    queryFn: () => facilityService.getFacilityResponsibles(facilityId),
+    enabled: !!facilityId,
+  })
+}
+
+export function useUpdateFacilityResponsibles() {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: ({ facilityId, responsibles }: { facilityId: string; responsibles: string[] }) =>
+      facilityService.updateFacilityResponsibles(facilityId, responsibles),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['facilityResponsibles', variables.facilityId] })
+    },
+  })
+}
+
+// Irrigation queries
+export function useLastIrrigation(plotId: string) {
+  return useQuery({
+    queryKey: ['lastIrrigation', plotId],
+    queryFn: () => irrigationService.getLastIrrigation(plotId),
+    enabled: !!plotId,
+    refetchInterval: 300000, // Refetch every 5 minutes
+    retry: false, // Don't retry if no irrigation data exists
+  })
+}
+
+export function useIrrigations(plotId: string) {
+  return useQuery({
+    queryKey: ['irrigations', plotId],
+    queryFn: () => irrigationService.getIrrigations(plotId),
+    enabled: !!plotId,
+  })
+}
+
+export function useFacilityIrrigations(facilityId: string, date?: string) {
+  return useQuery({
+    queryKey: ['facilityIrrigations', facilityId, date],
+    queryFn: () => irrigationService.getFacilityIrrigations(facilityId, date),
+    enabled: !!facilityId,
   })
 }

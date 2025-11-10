@@ -1,6 +1,23 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet, Navigate } from 'react-router-dom'
+import { useAuth } from '@/hooks/useAuth'
 
 export function AuthLayout() {
+  const { isAuthenticated, loading } = useAuth()
+
+  // Show loading spinner while checking authentication
+  if (loading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="h-16 w-16 animate-spin rounded-full border-b-2 border-t-2 border-blue-600"></div>
+      </div>
+    )
+  }
+
+  // If already authenticated, redirect to dashboard
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />
+  }
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100 px-4 py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md">

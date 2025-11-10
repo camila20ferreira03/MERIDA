@@ -66,8 +66,8 @@ def _process_plot_state(item: Dict[str, Any]) -> bool:
     Process a single plot state record.
     Returns True if the record triggered an alert evaluation (normal or alert).
     """
-    pk = item.get("PK")
-    sk = item.get("SK")
+    pk = item.get("pk")
+    sk = item.get("sk")
 
     if not pk or not sk or not pk.startswith("PLOT#") or not sk.startswith("STATE#"):
         logger.debug("Item %s/%s is not a plot state event, skipping", pk, sk)
@@ -78,24 +78,34 @@ def _process_plot_state(item: Dict[str, Any]) -> bool:
     species_id = item.get("SpeciesId") or item.get("species_id")
     facility_id = item.get("FacilityId") or item.get("facility_id")
     business_id = item.get("BusinessId") or item.get("business_id")
+    plot_name = item.get("PlotName") or item.get("plot_name")
 
-    if not species_id:
-        logger.info("State %s missing SpeciesId, skipping alert evaluation", sk)
-        return True
-
+    # Extract facility_id from GSI_PK if not present
     if not facility_id and isinstance(item.get("GSI_PK"), str) and item["GSI_PK"].startswith("FACILITY#"):
         facility_id = item["GSI_PK"].split("#", maxsplit=1)[-1]
 
-    ideal = _fetch_ideal_species_record(facility_id, species_id)
-    if not ideal:
-        logger.warning(
-            "Ideal parameters not found for species %s (facility=%s)", species_id, facility_id
-        )
+    # Fetch plot-specific thresholds
+    plot_thresholds = _fetch_plot_thresholds(plot_id)
+    
+    if not plot_thresholds:
+        logger.info("No thresholds configured for plot %s, skipping alert evaluation", plot_id)
         return True
+    
+    # Check if thresholds are enabled
+    umbral_enabled = plot_thresholds.get("umbral_enabled", False)
+    
+    if not umbral_enabled:
+        logger.info("Thresholds for plot %s are disabled (umbral_enabled=False), skipping alert evaluation", plot_id)
+        return True
+    
+    logger.info("Plot %s has thresholds enabled, proceeding with alert evaluation", plot_id)
+    
+    # Extract species_id from thresholds (for logging/context)
+    species_id = plot_thresholds.get("species_id") or species_id
+    
+    business_id = business_id or plot_thresholds.get("BusinessId") or plot_thresholds.get("business_id")
 
-    business_id = business_id or ideal.get("BusinessId") or ideal.get("business_id")
-
-    deviations = _find_deviations(item, ideal)
+    deviations = _find_deviations(item, plot_thresholds)
     if not deviations:
         logger.info("Plot %s measurements at %s are within acceptable range", plot_id, timestamp)
         return True
@@ -105,10 +115,15 @@ def _process_plot_state(item: Dict[str, Any]) -> bool:
         logger.warning("No responsible emails found for facility %s (business=%s); skipping SNS notification", facility_id, business_id)
         return True
 
+    # Fetch facility name for better email readability
+    facility_name = _fetch_facility_name(facility_id)
+
     _publish_alert(
         plot_id=plot_id,
+        plot_name=plot_name,
         species_id=species_id,
         facility_id=facility_id,
+        facility_name=facility_name,
         timestamp=timestamp,
         deviations=deviations,
         recipients=recipients,
@@ -116,8 +131,65 @@ def _process_plot_state(item: Dict[str, Any]) -> bool:
     return True
 
 
+def _fetch_plot_metadata(plot_id: Any, facility_id: Any) -> Dict[str, Any]:
+    """
+    Retrieve plot metadata to get species information.
+    Tries to fetch from FACILITY#{facility_id} / PLOT#{plot_id}
+    """
+    if not facility_id:
+        logger.warning("Cannot fetch plot metadata without facility_id")
+        return {}
+    
+    try:
+        response = table.get_item(
+            Key={
+                "pk": f"FACILITY#{facility_id}",
+                "sk": f"PLOT#{plot_id}"
+            }
+        )
+        item = response.get("Item")
+        if item:
+            logger.info("Successfully fetched plot metadata for plot %s", plot_id)
+            return item
+        else:
+            logger.warning("Plot metadata not found for pk=FACILITY#%s, sk=PLOT#%s", facility_id, plot_id)
+            return {}
+    except ClientError as error:
+        logger.error("Failed to fetch plot metadata: %s", error)
+        return {}
+
+
+def _fetch_plot_thresholds(plot_id: Any) -> Dict[str, Any]:
+    """
+    Retrieve thresholds for a specific plot.
+    Returns the plot's own thresholds (with umbral_enabled flag).
+    """
+    try:
+        response = table.get_item(
+            Key={
+                "pk": f"PLOT#{plot_id}",
+                "sk": "THRESHOLDS"
+            }
+        )
+        
+        item = response.get("Item")
+        if item:
+            logger.info("Found plot thresholds for plot %s", plot_id)
+            return item
+        else:
+            logger.warning("No thresholds configured for plot %s", plot_id)
+            return {}
+    
+    except ClientError as error:
+        logger.error("Failed to fetch plot thresholds: %s", error)
+        return {}
+
+
 def _fetch_ideal_species_record(facility_id: Any, species_id: Any) -> Dict[str, Any]:
-    """Retrieve ideal parameters for the specified species."""
+    """
+    DEPRECATED: Use _fetch_plot_thresholds instead.
+    Retrieve ideal parameters for the specified species.
+    """
     facility_segment = f"FACILITY#{facility_id}" if facility_id else None
 
     candidates: List[Dict[str, Any]] = []
@@ -129,16 +201,22 @@ def _fetch_ideal_species_record(facility_id: Any, species_id: Any) -> Dict[str, 
 
     for pk, sk in keys_to_try:
         try:
-            response = table.get_item(Key={"PK": pk, "SK": sk})
+            response = table.get_item(Key={"pk": pk, "sk": sk})
         except ClientError as error:  # pragma: no cover - log AWS errors
             logger.error("Failed to fetch ideal parameters: %s", error)
             continue
 
         item = response.get("Item")
         if item:
+            logger.info("Found ideal parameters at pk=%s, sk=%s", pk, sk)
             candidates.append(item)
 
-    return candidates[0] if candidates else {}
+    if candidates:
+        logger.info("Using ideal parameters for species %s", species_id)
+        return candidates[0]
+    else:
+        logger.warning("No ideal parameters found for species %s", species_id)
+        return {}
 
 
 def _find_deviations(
@@ -186,15 +264,36 @@ def _find_deviations(
     return deviations
 
 
+def _fetch_facility_name(facility_id: Any) -> str:
+    """Retrieve facility name from DynamoDB."""
+    if not facility_id:
+        return "Unknown Facility"
+
+    key = {
+        "pk": f"FACILITY#{facility_id}",
+        "sk": "Metadata",
+    }
+
+    try:
+        response = table.get_item(Key=key)
+        facility = response.get("Item")
+        if facility:
+            return facility.get("name", f"Facility {facility_id[:8]}")
+    except ClientError as error:
+        logger.error("Failed to fetch facility name for %s: %s", facility_id, error)
+
+    return f"Facility {facility_id[:8]}"
+
+
 def _fetch_responsible_emails(business_id: Any, facility_id: Any) -> List[str]:
-    """Retrieve responsible emails from the Business → Facility mapping in DynamoDB."""
-    if not business_id or not facility_id:
-        logger.warning("Missing business_id (%s) or facility_id (%s) for responsible lookup", business_id, facility_id)
+    """Retrieve responsible emails directly from the Facility in DynamoDB."""
+    if not facility_id:
+        logger.warning("Missing facility_id for responsible lookup")
         return []
 
     key = {
-        "PK": f"BUSINESS#{business_id}",
-        "SK": f"FACILITY#{facility_id}",
+        "pk": f"FACILITY#{facility_id}",
+        "sk": "RESPONSIBLES",
     }
 
     try:
@@ -205,31 +304,32 @@ def _fetch_responsible_emails(business_id: Any, facility_id: Any) -> List[str]:
 
     record = response.get("Item")
     if not record:
-        logger.info("No responsible record found for business %s / facility %s", business_id, facility_id)
+        logger.info("No responsible record found for facility %s", facility_id)
         return []
 
-    # Accept multiple possible attribute names to stay compatible with existing data
-    raw_emails = (
-        record.get("responsibles")
-        or record.get("Responsibles")
-        or record.get("Users")
-        or record.get("users")
-    )
+    # Get responsibles list
+    raw_emails = record.get("responsibles", [])
 
     if isinstance(raw_emails, list):
-        return [email for email in raw_emails if isinstance(email, str) and email.strip()]
+        emails = [email for email in raw_emails if isinstance(email, str) and email.strip()]
+        logger.info("Found %d responsibles for facility %s", len(emails), facility_id)
+        return emails
 
     if isinstance(raw_emails, str):
-        return [email.strip() for email in raw_emails.split(",") if email.strip()]
+        emails = [email.strip() for email in raw_emails.split(",") if email.strip()]
+        logger.info("Found %d responsibles for facility %s (parsed from string)", len(emails), facility_id)
+        return emails
 
-    logger.info("Responsible record for business %s / facility %s does not contain emails", business_id, facility_id)
+    logger.info("Responsible record for facility %s does not contain emails", facility_id)
     return []
 
 
 def _publish_alert(
     plot_id: str,
+    plot_name: Any,
     species_id: Any,
     facility_id: Any,
+    facility_name: str,
     timestamp: Any,
     deviations: List[Dict[str, Any]],
     recipients: List[str],
@@ -239,31 +339,66 @@ def _publish_alert(
         logger.error("ALERTS_TOPIC_ARN environment variable is required to publish alerts")
         return
 
-    subject = f"[SmartGrow] Plot {plot_id} out of range"
+    # Use plot name if available, otherwise use short ID
+    plot_display = plot_name if plot_name else f"Plot {plot_id[:8]}"
+    subject = f"🚨 [MERIDA Alert] {plot_display} - Values Out of Range"
+
+    # Map metric keys to display names with units
+    metric_info = {
+        "temperature": {"name": "Temperature", "unit": "°C"},
+        "humidity": {"name": "Humidity", "unit": "%"},
+        "light": {"name": "Light", "unit": "lux"},
+        "soil_moisture": {"name": "Soil Moisture", "unit": "%"},
+    }
 
     lines = [
-        f"Plot ID: {plot_id}",
-        f"Species: {species_id}",
-        f"Facility: {facility_id or 'Unknown'}",
-        f"Timestamp: {timestamp or datetime.utcnow().isoformat()}",
+        "⚠️  ALERT: Environmental Values Out of Tolerance Range",
         "",
-        "Metrics outside tolerance:",
+        f"📍 Facility: {facility_name}",
+        f"🌱 Plot: {plot_display}",
+        f"🔬 Species: {species_id or 'Unknown'}",
+        f"🕒 Timestamp: {timestamp or datetime.utcnow().isoformat()}",
+        "",
+        "📊 Metrics Outside Tolerance:",
+        "",
     ]
 
     for deviation in deviations:
+        metric_key = deviation['metric']
+        info = metric_info.get(metric_key, {"name": metric_key.capitalize(), "unit": ""})
+        actual = deviation['actual']
+        lower = deviation.get('lower_bound')
+        upper = deviation.get('upper_bound')
+        
+        # Build range description
+        if lower is not None and upper is not None:
+            range_desc = f"{lower:.1f} - {upper:.1f}{info['unit']}"
+        elif lower is not None:
+            range_desc = f"≥ {lower:.1f}{info['unit']}"
+        elif upper is not None:
+            range_desc = f"≤ {upper:.1f}{info['unit']}"
+        else:
+            range_desc = "undefined"
+        
+        # Calculate how much out of range
+        deviation_desc = ""
+        if upper is not None and actual > upper:
+            diff = actual - upper
+            deviation_desc = f" ({diff:.1f}{info['unit']} above maximum)"
+        elif lower is not None and actual < lower:
+            diff = lower - actual
+            deviation_desc = f" ({diff:.1f}{info['unit']} below minimum)"
+        
         lines.append(
-            (
-                f"- {deviation['metric'].capitalize()}: actual={deviation['actual']:.2f}, "
-                f"allowed range "
-                f"{'' if deviation.get('lower_bound') is None else '>=' + format(deviation['lower_bound'], '.2f') + ' '}"
-                f"{'' if deviation.get('upper_bound') is None else '<= ' + format(deviation['upper_bound'], '.2f')}"
-            )
+            f"  • {info['name']}: {actual:.1f}{info['unit']}{deviation_desc}"
         )
+        lines.append(f"    Allowed range: {range_desc}")
+        lines.append("")
 
     lines.extend(
         [
-            "",
-            "Recipients:",
+            "---",
+            "This alert was sent to the following recipients:",
             ", ".join(recipients),
         ]
     )

@@ -38,11 +38,11 @@ def lambda_handler(event: Dict[str, Any], _context: Any) -> Dict[str, Any]:
         event_name = record.get("eventName")
         dynamodb_record = record.get("dynamodb", {})
 
-        pk = _get_key_value(dynamodb_record, "PK")
-        sk = _get_key_value(dynamodb_record, "SK")
+        pk = _get_key_value(dynamodb_record, "pk")
+        sk = _get_key_value(dynamodb_record, "sk")
 
         if not pk or not sk:
-            logger.debug("Record without PK/SK, skipping: %s", record)
+            logger.debug("Record without pk/sk, skipping: %s", record)
             continue
 
         business_id = pk.split("#", maxsplit=1)[-1]
@@ -158,7 +158,7 @@ def _deserialize_image(image: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _get_key_value(dynamodb_record: Dict[str, Any], key_name: str) -> Optional[str]:
-    """Fetch the primary key value (PK/SK) from a DynamoDB stream record."""
+    """Fetch the primary key value (pk/sk) from a DynamoDB stream record."""
     keys = dynamodb_record.get("Keys")
     if not keys or key_name not in keys:
         return None

@@ -37,21 +37,13 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-origin_env = os.getenv("FRONTEND_ORIGIN", "*")
-print(origin_env)
-# Permitir varios orígenes separados por comas (si fuera necesario),
-# porque CORSMiddleware espera una lista de orígenes
-frontend_origins = origin_env.split(",") if origin_env != "*" else ["*"]
-
+# CORS Configuration - Allow all origins
 app.add_middleware(
     CORSMiddleware,
-    #allow_origins=frontend_origins,
-    allow_origins=[
-        "http://eliseo-app-tic.s3-website.us-east-2.amazonaws.com", "http://localhost:5173"
-    ],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=["*"],  # Permite todos los orígenes
+    allow_credentials=False,  # Debe ser False cuando allow_origins es "*"
+    allow_methods=["*"],  # Permite todos los métodos HTTP
+    allow_headers=["*"],  # Permite todos los headers
 )
 
 app.mount("/static", StaticFiles(directory=static_path), name="static")

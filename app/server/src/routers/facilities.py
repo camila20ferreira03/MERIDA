@@ -152,3 +152,101 @@ async def delete_facility(facility_id: str):
 
     except ClientError as e:
         raise HTTPException(status_code=500, detail=f"Error deleting facility: {e}")
+
+
+@router.get("/{facility_id}/responsibles", description="Obtener emails de responsables de una facility")
+async def get_facility_responsibles(facility_id: str):
+    """
+    Obtiene la lista de emails de responsables configurados para recibir alertas.
+    Busca en FACILITY#{facility_id} / RESPONSIBLES
+    """
+    try:
+        # Verificar que la facility existe
+        facility_response = table.get_item(
+            Key={"pk": f"FACILITY#{facility_id}", "sk": "Metadata"}
+        )
+        
+        if "Item" not in facility_response:
+            raise HTTPException(status_code=404, detail="Facility not found")
+        
+        # Buscar responsables
+        response = table.get_item(
+            Key={
+                "pk": f"FACILITY#{facility_id}",
+                "sk": "RESPONSIBLES"
+            }
+        )
+        
+        if "Item" not in response:
+            return {
+                "facility_id": facility_id,
+                "responsibles": []
+            }
+        
+        record = response["Item"]
+        responsibles = record.get("responsibles", [])
+        
+        return {
+            "facility_id": facility_id,
+            "responsibles": responsibles if isinstance(responsibles, list) else []
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching responsibles: {e}")
+
+
+@router.put("/{facility_id}/responsibles", description="Actualizar emails de responsables de una facility")
+async def update_facility_responsibles(facility_id: str, emails: dict):
+    """
+    Actualiza la lista de emails de responsables para recibir alertas.
+    
+    Body:
+    {
+      "responsibles": ["email1@example.com", "email2@example.com"]
+    }
+    """
+    try:
+        # Verificar que la facility existe
+        facility_response = table.get_item(
+            Key={"pk": f"FACILITY#{facility_id}", "sk": "Metadata"}
+        )
+        
+        if "Item" not in facility_response:
+            raise HTTPException(status_code=404, detail="Facility not found")
+        
+        # Validar emails
+        responsibles_list = emails.get("responsibles", [])
+        
+        if not isinstance(responsibles_list, list):
+            raise HTTPException(status_code=400, detail="'responsibles' must be a list of emails")
+        
+        # Validar formato de emails (básico)
+        import re
+        email_regex = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        for email in responsibles_list:
+            if not isinstance(email, str) or not re.match(email_regex, email):
+                raise HTTPException(status_code=400, detail=f"Invalid email format: {email}")
+        
+        # Guardar/actualizar responsables directamente en la facility
+        item = {
+            "pk": f"FACILITY#{facility_id}",
+            "sk": "RESPONSIBLES",
+            "facility_id": facility_id,
+            "responsibles": responsibles_list,
+            "type": "FACILITY_RESPONSIBLES"
+        }
+        
+        table.put_item(Item=item)
+        
+        return {
+            "message": "Responsibles updated successfully",
+            "facility_id": facility_id,
+            "responsibles": responsibles_list
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating responsibles: {e}")

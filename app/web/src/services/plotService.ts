@@ -10,30 +10,30 @@ export const plotService = {
 
   // Get a specific plot
   getPlot: async (plotId: string): Promise<PlotMetadata> => {
-    const response = await apiClient.get(`/plot/${plotId}`)
+    const response = await apiClient.get(`/plots/${plotId}`)
     return response.data
   },
 
   // Create a new plot
   createPlot: async (data: CreatePlotRequest): Promise<PlotMetadata> => {
-    const response = await apiClient.post('/plot', data)
+    const response = await apiClient.post('/plots', data)
     return response.data
   },
 
   // Update a plot
   updatePlot: async (plotId: string, data: UpdatePlotRequest): Promise<PlotMetadata> => {
-    const response = await apiClient.put(`/plot/${plotId}`, data)
+    const response = await apiClient.put(`/plots/${plotId}`, data)
     return response.data
   },
 
   // Delete a plot
   deletePlot: async (plotId: string): Promise<void> => {
-    await apiClient.delete(`/plot/${plotId}`)
+    await apiClient.delete(`/plots/${plotId}`)
   },
 
   // Get plot state/sensor data
   getPlotState: async (plotId: string): Promise<PlotState> => {
-    const response = await apiClient.get(`/plot/${plotId}/state`)
+    const response = await apiClient.get(`/plots/${plotId}/state`)
     return response.data
   },
 
@@ -47,7 +47,19 @@ export const plotService = {
     if (startDate) params.append('start_date', startDate)
     if (endDate) params.append('end_date', endDate)
 
-    const response = await apiClient.get(`/plot/${plotId}/history?${params.toString()}`)
+    const response = await apiClient.get(`/plots/${plotId}/history?${params.toString()}`)
+    return response.data
+  },
+
+  // Get plot thresholds based on assigned species
+  getPlotThresholds: async (plotId: string) => {
+    const response = await apiClient.get(`/plots/${plotId}/thresholds`)
+    return response.data
+  },
+
+  // Update plot thresholds and activate them
+  updatePlotThresholds: async (plotId: string, thresholds: any) => {
+    const response = await apiClient.put(`/plots/${plotId}/thresholds`, thresholds)
     return response.data
   },
 }

@@ -10,9 +10,12 @@ export interface User {
 export interface PlotMetadata {
   plot_id: string
   facility_id: string
+  name?: string
+  location?: string
   species?: string
   area?: number
-  created_at: string
+  mac_address?: string
+  created_at?: string
   updated_at?: string
 }
 
@@ -27,6 +30,9 @@ export interface PlotState {
 
 export interface CreatePlotRequest {
   facility_id: string
+  name: string
+  location: string
+  mac_address: string
   species?: string
   area?: number
 }
@@ -55,12 +61,58 @@ export interface Event {
   data?: Record<string, unknown>
 }
 
+// Irrigation types
+export interface IrrigationEvent {
+  plot_id: string
+  timestamp: string
+  duration?: number // minutes
+  water_amount?: number // liters
+  type?: 'manual' | 'automatic'
+  [key: string]: any
+}
+
+export interface LastIrrigationResponse {
+  plot_id: string
+  last_irrigation: string
+  details: IrrigationEvent
+}
+
+export interface IrrigationsResponse {
+  count: number
+  irrigations: IrrigationEvent[]
+}
+
+// Species thresholds types
+export interface SpeciesThresholds {
+  species_id: string
+  MinTemperature?: number
+  MaxTemperature?: number
+  MinHumidity?: number
+  MaxHumidity?: number
+  MinLight?: number
+  MaxLight?: number
+  MinIrrigation?: number
+  MaxIrrigation?: number
+}
+
+export interface PlotThresholds {
+  plot_id: string
+  species_id: string
+  scope: 'facility' | 'global'
+  thresholds: SpeciesThresholds
+}
+
 // Facility types
 export interface Facility {
   facility_id: string
   name: string
   location?: string
   created_at: string
+}
+
+export interface CreateFacilityRequest {
+  name: string
+  location: string
 }
 
 // API Response types

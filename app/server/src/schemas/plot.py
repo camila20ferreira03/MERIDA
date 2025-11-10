@@ -7,6 +7,8 @@ class PlotBase(BaseModel):
     name: str
     location: str
     mac_address: str
+    species: Optional[str] = None
+    area: Optional[float] = None
 
 class Plot(PlotBase):
     plot_id: str
@@ -15,6 +17,8 @@ class PlotCreate(PlotBase):
     pass
 
 class PlotUpdate(BaseModel):
-    name: Optional[str]
-    location: Optional[str]
-    species: Optional[str]
+    name: Optional[str] = None
+    location: Optional[str] = None
+    species: Optional[str] = None
+    area: Optional[float] = None
+    mac_address: Optional[str] = None

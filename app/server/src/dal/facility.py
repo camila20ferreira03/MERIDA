@@ -7,8 +7,8 @@ table = dynamodb.Table(os.getenv("TABLE_NAME", "MeridaMainTable"))
 
 def create_facility(facility_id: UUID, name: str, location: str):
     item = {
-        "PK": f"FACILITY#{facility_id}",
-        "SK": "Metadata",
+        "pk": f"FACILITY#{facility_id}",
+        "sk": "Metadata",
         "name": name,
         "location": location,
         "type": "Facility"

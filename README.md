@@ -45,28 +45,85 @@ Lambda function que procesa mensajes desde IoT Core y los guarda en DynamoDB.
 #### STATE - Lecturas de sensores
 ```json
 {
-  "plot_id": "123",
-  "type": "state",
-  "timestamp": "2025-01-01T12:00:00Z",
+  "plot_id": "fe473070-d918-4ed8-8f15-73a60482b55e",
   "sensor_data": {
     "temperature": 25.5,
     "humidity": 60.0,
     "soil_moisture": 45.2,
-    "light": 800
+    "light": 8000
   }
 }
 ```
 
-#### EVENT - Eventos de riego
+**Nota:** El campo `timestamp` es opcional. Si no se proporciona, la lambda lo genera automáticamente.
+
+Con timestamp explícito:
 ```json
 {
-  "type": "event",
-  "plot_id": "123",
-  "timestamp": "2025-01-01T13:00:00Z",
-  "irrigation": {
-    "milliliters": 100
+  "plot_id": "fe473070-d918-4ed8-8f15-73a60482b55e",
+  "timestamp": "2025-11-10T15:00:00Z",
+  "sensor_data": {
+    "temperature": 25.5,
+    "humidity": 60.0,
+    "soil_moisture": 45.2,
+    "light": 8000
   }
 }
+```
+
+#### EVENT - Eventos de irrigación
+```json
+{
+  "plot_id": "fe473070-d918-4ed8-8f15-73a60482b55e",
+  "event_type": "irrigation",
+  "duration": 15,
+  "water_amount": 45.5,
+  "type": "automatic"
+}
+```
+
+**Nota:** El campo `timestamp` es opcional y se genera automáticamente si no se proporciona.
+
+**Campos del evento:**
+- `plot_id` (requerido): ID del plot
+- `event_type` (requerido): Tipo de evento, ej: "irrigation"
+- `duration` (opcional): Duración en minutos
+- `water_amount` (opcional): Cantidad de agua en litros
+- `type` (opcional): "automatic" o "manual"
+- `timestamp` (opcional): Si no se proporciona, se genera automáticamente
+
+**Comandos para publicar en IoT Core:**
+
+Publicar lectura de sensores (STATE):
+```bash
+aws iot-data publish \
+  --topic "merida/plot/fe473070-d918-4ed8-8f15-73a60482b55e/state" \
+  --cli-binary-format raw-in-base64-out \
+  --payload '{
+    "plot_id": "fe473070-d918-4ed8-8f15-73a60482b55e",
+    "sensor_data": {
+      "temperature": 25.5,
+      "humidity": 60.0,
+      "soil_moisture": 45.2,
+      "light": 8000
+    }
+  }' \
+  --region us-east-1
+```
+
+Publicar evento de irrigación (EVENT):
+```bash
+aws iot-data publish \
+  --topic "merida/plot/fe473070-d918-4ed8-8f15-73a60482b55e/event" \
+  --cli-binary-format raw-in-base64-out \
+  --payload '{
+    "plot_id": "fe473070-d918-4ed8-8f15-73a60482b55e",
+    "event_type": "irrigation",
+    "duration": 15,
+    "water_amount": 45.5,
+    "type": "automatic"
+  }' \
+  --region us-east-1
 ```
 
 **Deployment con Docker:**
@@ -75,7 +132,40 @@ cd lambdas/lambda_iot_handler
 ./deploy.sh
 ```
 
-### 3. DynamoDB Table
+### 3. Backend API (FastAPI)
+
+API REST para gestión de facilities, plots, sensores y umbrales.
+
+**Endpoints disponibles:**
+- `GET /facilities` - Listar facilities
+- `POST /facilities` - Crear facility
+- `GET /plots/{plot_id}` - Obtener plot
+- `POST /plots` - Crear plot
+- `GET /plots/{plot_id}/state` - Estado actual del plot
+- `GET /plots/{plot_id}/history` - Historial de datos
+- `GET /plots/{plot_id}/thresholds` - Umbrales del plot
+- `GET /irrigations/plot/{plot_id}/last-irrigation` - Último riego
+- `GET /irrigations/plot/{plot_id}/irrigations` - Todos los riegos
+
+**CORS Configuration:**
+El backend está configurado para aceptar peticiones desde **cualquier origen**:
+```python
+allow_origins=["*"]  # Acepta todos los hosts
+allow_methods=["*"]  # Acepta todos los métodos HTTP
+allow_headers=["*"]  # Acepta todos los headers
+```
+
+**Iniciar servidor en desarrollo:**
+```bash
+cd app/server
+pip install -r requirements.txt
+uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+API disponible en: `http://localhost:8000`
+Documentación: `http://localhost:8000/docs`
+
+### 4. DynamoDB Table
 
 **Tabla:** SmartGrowData
 
@@ -85,7 +175,7 @@ cd lambdas/lambda_iot_handler
 - **GSI_PK**: `FACILITY#<facility_id>`
 - **GSI_SK**: `TIMESTAMP#<timestamp>`
 
-### 4. Frontend (React + TypeScript + Vite)
+### 5. Frontend (React + TypeScript + Vite)
 
 Aplicación web para monitoreo y gestión de cultivos:
 
@@ -114,7 +204,7 @@ npm run dev
 
 Ver documentación completa en [app/web/README.md](app/web/README.md)
 
-### 5. CI/CD (GitHub Actions)
+### 6. CI/CD (GitHub Actions)
 
 Workflows automatizados para deployment:
 

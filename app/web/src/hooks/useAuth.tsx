@@ -4,6 +4,7 @@ import { signIn, signOut, getCurrentUser, confirmSignIn } from 'aws-amplify/auth
 interface User {
   username: string
   userId: string
+  email?: string
   signInDetails?: unknown
 }
 
@@ -55,6 +56,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     attributes?: Record<string, string>,
   ): Promise<LoginResult> {
     try {
+      // Check if there's already an active session and sign out first
+      try {
+        const currentUser = await getCurrentUser()
+        if (currentUser) {
+          console.debug('[Auth] Found existing session, signing out first')
+          await signOut()
+          setUser(null)
+        }
+      } catch {
+        // No active session, continue with login
+      }
+
       const response = await signIn({ username, password })
       console.debug('[Auth] signIn response:', response)
 

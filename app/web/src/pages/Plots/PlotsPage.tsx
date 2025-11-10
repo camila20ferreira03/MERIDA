@@ -69,12 +69,14 @@ export function PlotsPage() {
                       <dd className="inline text-gray-900">{plot.area} m²</dd>
                     </div>
                   )}
-                  <div>
-                    <dt className="inline font-medium text-gray-500">Created: </dt>
-                    <dd className="inline text-gray-900">
-                      {new Date(plot.created_at).toLocaleDateString()}
-                    </dd>
-                  </div>
+                  {plot.created_at && (
+                    <div>
+                      <dt className="inline font-medium text-gray-500">Created: </dt>
+                      <dd className="inline text-gray-900">
+                        {new Date(plot.created_at).toLocaleDateString()}
+                      </dd>
+                    </div>
+                  )}
                 </dl>
                 <div className="mt-4 flex space-x-2">
                   <button
@@ -128,6 +130,9 @@ function CreatePlotModal({
   onCreate: (data: CreatePlotRequest) => void
 }) {
   const [facilityId, setFacilityId] = useState('')
+  const [name, setName] = useState('')
+  const [location, setLocation] = useState('')
+  const [macAddress, setMacAddress] = useState('')
   const [species, setSpecies] = useState('')
   const [area, setArea] = useState('')
 
@@ -135,6 +140,9 @@ function CreatePlotModal({
     e.preventDefault()
     onCreate({
       facility_id: facilityId,
+      name: name,
+      location: location,
+      mac_address: macAddress,
       species: species || undefined,
       area: area ? parseFloat(area) : undefined,
     })
@@ -156,6 +164,42 @@ function CreatePlotModal({
                 required
                 value={facilityId}
                 onChange={(e) => setFacilityId(e.target.value)}
+                className="focus:border-primary-500 focus:ring-primary-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Plot Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="focus:border-primary-500 focus:ring-primary-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Location <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                className="focus:border-primary-500 focus:ring-primary-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                MAC Address <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={macAddress}
+                onChange={(e) => setMacAddress(e.target.value)}
                 className="focus:border-primary-500 focus:ring-primary-500 mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:outline-none"
               />
             </div>

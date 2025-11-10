@@ -22,7 +22,7 @@ def _normalize_value(value: Any) -> Any:
 
 
 def get_user_profile(user_id: str) -> UserRead | None:
-    response = table.get_item(Key={"PK": pk_user(user_id), "SK": _PROFILE_SK})
+    response = table.get_item(Key={"pk": pk_user(user_id), "sk": _PROFILE_SK})
     item = response.get("Item")
     if not item:
         return None

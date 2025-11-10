@@ -17,3 +17,26 @@ class Species(SpeciesBase):
 
 class SpeciesCreate(SpeciesBase):
     pass
+
+class SpeciesThresholds(BaseModel):
+    """Umbrales ideales para una especie"""
+    species_id: str
+    MinTemperature: Optional[float] = Field(None, description="Temperatura mínima ideal (°C)")
+    MaxTemperature: Optional[float] = Field(None, description="Temperatura máxima ideal (°C)")
+    MinHumidity: Optional[float] = Field(None, description="Humedad mínima ideal (%)")
+    MaxHumidity: Optional[float] = Field(None, description="Humedad máxima ideal (%)")
+    MinLight: Optional[float] = Field(None, description="Luz mínima ideal (lux)")
+    MaxLight: Optional[float] = Field(None, description="Luz máxima ideal (lux)")
+    MinIrrigation: Optional[float] = Field(None, description="Riego mínimo ideal (mm/día)")
+    MaxIrrigation: Optional[float] = Field(None, description="Riego máximo ideal (mm/día)")
+
+class SpeciesThresholdsUpdate(BaseModel):
+    """Actualización de umbrales para una especie"""
+    MinTemperature: Optional[float] = None
+    MaxTemperature: Optional[float] = None
+    MinHumidity: Optional[float] = None
+    MaxHumidity: Optional[float] = None
+    MinLight: Optional[float] = None
+    MaxLight: Optional[float] = None
+    MinIrrigation: Optional[float] = None
+    MaxIrrigation: Optional[float] = None

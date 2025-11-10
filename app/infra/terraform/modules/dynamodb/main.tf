@@ -12,19 +12,19 @@ terraform {
 resource "aws_dynamodb_table" "smart_grow_data" {
   name         = var.table_name
   billing_mode = var.billing_mode
-  hash_key     = "PK"
-  range_key    = "SK"
+  hash_key     = "pk"
+  range_key    = "sk"
   stream_enabled   = true
   stream_view_type = "NEW_AND_OLD_IMAGES"
 
   # Primary Key attributes
   attribute {
-    name = "PK"
+    name = "pk"
     type = "S" # String - e.g., "PLOT#12", "USER#123", "FACILITY#1"
   }
 
   attribute {
-    name = "SK"
+    name = "sk"
     type = "S" # String - e.g., "STATE#2025-10-28T12:00:00Z", "SENSOR#temp"
   }
 
@@ -39,12 +39,38 @@ resource "aws_dynamodb_table" "smart_grow_data" {
     type = "S" # String - Alternative sort key (e.g., Timestamp, PlotId)
   }
 
+  # Attribute for type-based queries (FACILITY, PLOT, etc.)
+  attribute {
+    name = "type"
+    type = "S"
+  }
+
+  # Attribute for species-based queries
+  attribute {
+    name = "species"
+    type = "S"
+  }
+
   # Global Secondary Index for alternative queries
   global_secondary_index {
     name            = var.gsi_name
     hash_key        = "GSI_PK"
     range_key       = "GSI_SK"
     projection_type = "ALL" # Include all attributes in the index
+  }
+
+  # GSI for querying by type (FACILITY, PLOT, etc.)
+  global_secondary_index {
+    name            = "GSI_TypeIndex"
+    hash_key        = "type"
+    projection_type = "ALL"
+  }
+
+  # GSI for querying plots by species
+  global_secondary_index {
+    name            = "GSI_SpeciesPlots"
+    hash_key        = "species"
+    projection_type = "ALL"
   }
 
   # Enable Point-in-Time Recovery for data protection
