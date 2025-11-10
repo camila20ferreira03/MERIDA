@@ -1,11 +1,7 @@
 import { Amplify } from 'aws-amplify'
 
 // Extract env vars (Vite exposes only those prefixed with VITE_)
-const {
-  VITE_COGNITO_USER_POOL_ID,
-  VITE_COGNITO_CLIENT_ID,
-  VITE_AWS_REGION,
-} = import.meta.env
+const { VITE_COGNITO_USER_POOL_ID, VITE_COGNITO_CLIENT_ID, VITE_AWS_REGION } = import.meta.env
 
 // Basic runtime validation to help detect misconfiguration early
 if (!VITE_COGNITO_USER_POOL_ID || !VITE_COGNITO_CLIENT_ID) {
@@ -13,8 +9,7 @@ if (!VITE_COGNITO_USER_POOL_ID || !VITE_COGNITO_CLIENT_ID) {
   console.error('[Auth] Missing required Cognito environment variables.', {
     VITE_COGNITO_USER_POOL_ID,
     VITE_COGNITO_CLIENT_ID,
-    hint:
-      'Ensure Amplify Console (or Terraform) defines VITE_COGNITO_USER_POOL_ID and VITE_COGNITO_CLIENT_ID. For local dev, create a .env file based on .env.example.'
+    hint: 'Ensure Amplify Console (or Terraform) defines VITE_COGNITO_USER_POOL_ID and VITE_COGNITO_CLIENT_ID. For local dev, create a .env file based on .env.example.',
   })
 }
 
