@@ -28,8 +28,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-// Component exported separately to avoid fast-refresh issues
-// eslint-disable-next-line react-refresh/only-export-components
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
@@ -53,7 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     username: string,
     password: string,
     newPassword?: string,
-    attributes?: Record<string, string>,
+    attributes?: Record<string, string>
   ): Promise<LoginResult> {
     try {
       // Check if there's already an active session and sign out first
@@ -73,8 +71,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const nextStep = response.nextStep?.signInStep
       const requiredAttributes =
-        (response.nextStep as { additionalInfo?: { requiredAttributes?: string[] } })?.additionalInfo
-          ?.requiredAttributes ?? []
+        (response.nextStep as { additionalInfo?: { requiredAttributes?: string[] } })
+          ?.additionalInfo?.requiredAttributes ?? []
 
       if (nextStep === 'CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED') {
         if (!newPassword) {
@@ -84,7 +82,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userAttributes: Record<string, string> = { ...(attributes ?? {}) }
 
         console.debug('[Auth] required attributes:', requiredAttributes)
-        if (requiredAttributes.includes('email') && !userAttributes.email && username.includes('@')) {
+        if (
+          requiredAttributes.includes('email') &&
+          !userAttributes.email &&
+          username.includes('@')
+        ) {
           userAttributes.email = username
         }
 
@@ -98,7 +100,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           userAttributes.family_name = attributes?.family_name || userAttributes.name || username
         }
 
-        if (requiredAttributes.includes('preferred_username') && !userAttributes.preferred_username) {
+        if (
+          requiredAttributes.includes('preferred_username') &&
+          !userAttributes.preferred_username
+        ) {
           userAttributes.preferred_username = username
         }
 

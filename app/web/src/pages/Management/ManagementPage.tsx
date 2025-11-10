@@ -1,8 +1,16 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Building2, Plus, MapPin, Sprout, CheckCircle, AlertCircle } from 'lucide-react'
-import { useFacilities, useCreateFacility, useFacilityPlots, useCreatePlot, useSpecies, useCreateSpecies } from '@/hooks/useQueries'
+import {
+  useFacilities,
+  useCreateFacility,
+  useFacilityPlots,
+  useCreatePlot,
+  useSpecies,
+  useCreateSpecies,
+} from '@/hooks/useQueries'
 import type { Facility, CreateFacilityRequest, CreatePlotRequest } from '@/types'
+import type { AxiosError } from 'axios'
 
 export function ManagementPage() {
   const [selectedFacility, setSelectedFacility] = useState<Facility | null>(null)
@@ -10,7 +18,9 @@ export function ManagementPage() {
   const [showPlotForm, setShowPlotForm] = useState(false)
 
   const { data: facilities, isLoading: facilitiesLoading } = useFacilities()
-  const { data: plots, isLoading: plotsLoading } = useFacilityPlots(selectedFacility?.facility_id || '')
+  const { data: plots, isLoading: plotsLoading } = useFacilityPlots(
+    selectedFacility?.facility_id || ''
+  )
 
   const handleFacilitySelect = (facility: Facility) => {
     setSelectedFacility(facility)
@@ -30,15 +40,17 @@ export function ManagementPage() {
   return (
     <div className="space-y-6">
       {/* Select or Create Facility */}
-      <div className="rounded-lg bg-white p-6 shadow-sm border border-gray-200">
-        <div className="flex items-center justify-between mb-4">
+      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="bg-blue-100 rounded-lg p-2">
+            <div className="rounded-lg bg-blue-100 p-2">
               <Building2 className="h-6 w-6 text-blue-600" />
             </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900">Facility</h3>
-              <p className="text-sm text-gray-600">Choose an existing facility or create a new one</p>
+              <p className="text-sm text-gray-600">
+                Choose an existing facility or create a new one
+              </p>
             </div>
           </div>
           <div className="flex gap-2">
@@ -48,14 +60,14 @@ export function ManagementPage() {
                   setSelectedFacility(null)
                   setShowPlotForm(false)
                 }}
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                className="text-sm font-medium text-blue-600 hover:text-blue-700"
               >
                 Change Facility
               </button>
             )}
             <button
               onClick={handleCreateNewFacility}
-              className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium text-sm flex items-center gap-2"
+              className="flex items-center gap-2 rounded-lg bg-green-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-600"
             >
               <Plus className="h-4 w-4" /> New Facility
             </button>
@@ -64,10 +76,7 @@ export function ManagementPage() {
 
         {/* Create Facility Form */}
         {showFacilityForm && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <CreateFacilityForm
               onSuccess={(facility) => {
                 setSelectedFacility(facility)
@@ -83,16 +92,16 @@ export function ManagementPage() {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-gradient-to-r from-blue-50 to-blue-100 border-2 border-blue-500 rounded-lg p-4"
+            className="rounded-lg border-2 border-blue-500 bg-gradient-to-r from-blue-50 to-blue-100 p-4"
           >
             <div className="flex items-center justify-between">
               <div>
                 <h4 className="font-semibold text-gray-900">{selectedFacility.name}</h4>
                 {selectedFacility.location && (
-                  <p className="text-sm text-gray-600 mt-1">📍 {selectedFacility.location}</p>
+                  <p className="mt-1 text-sm text-gray-600">📍 {selectedFacility.location}</p>
                 )}
               </div>
-              <div className="bg-blue-500 text-white rounded-full px-3 py-1 text-sm font-medium">
+              <div className="rounded-full bg-blue-500 px-3 py-1 text-sm font-medium text-white">
                 Selected
               </div>
             </div>
@@ -103,13 +112,13 @@ export function ManagementPage() {
         {!selectedFacility && !showFacilityForm && (
           <>
             {facilitiesLoading ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="bg-gray-100 animate-pulse rounded-lg h-24"></div>
+                  <div key={i} className="h-24 animate-pulse rounded-lg bg-gray-100"></div>
                 ))}
               </div>
             ) : facilities && facilities.length > 0 ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {facilities.map((facility, index) => (
                   <motion.button
                     key={facility.facility_id}
@@ -117,27 +126,27 @@ export function ManagementPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
                     onClick={() => handleFacilitySelect(facility)}
-                    className="bg-white border-2 border-gray-200 hover:border-blue-500 hover:shadow-lg rounded-lg p-4 text-left transition-all group"
+                    className="group rounded-lg border-2 border-gray-200 bg-white p-4 text-left transition-all hover:border-blue-500 hover:shadow-lg"
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <h4 className="font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                        <h4 className="font-semibold text-gray-900 transition-colors group-hover:text-blue-600">
                           {facility.name}
                         </h4>
                         {facility.location && (
-                          <p className="text-sm text-gray-600 mt-1 flex items-center gap-1">
+                          <p className="mt-1 flex items-center gap-1 text-sm text-gray-600">
                             <MapPin className="h-3 w-3" /> {facility.location}
                           </p>
                         )}
                       </div>
-                      <Building2 className="h-5 w-5 text-gray-400 group-hover:text-blue-600 transition-colors" />
+                      <Building2 className="h-5 w-5 text-gray-400 transition-colors group-hover:text-blue-600" />
                     </div>
                   </motion.button>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8 text-gray-500">
-                <Building2 className="mx-auto h-12 w-12 text-gray-300 mb-2" />
+              <div className="py-8 text-center text-gray-500">
+                <Building2 className="mx-auto mb-2 h-12 w-12 text-gray-300" />
                 <p>No facilities found. Create one to get started!</p>
               </div>
             )}
@@ -150,11 +159,11 @@ export function ManagementPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="rounded-lg bg-white p-6 shadow-sm border border-gray-200"
+          className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm"
         >
-          <div className="flex items-center justify-between mb-4">
+          <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="bg-green-100 rounded-lg p-2">
+              <div className="rounded-lg bg-green-100 p-2">
                 <Sprout className="h-6 w-6 text-green-600" />
               </div>
               <div>
@@ -165,7 +174,7 @@ export function ManagementPage() {
             {!showPlotForm && (
               <button
                 onClick={handleCreatePlotInFacility}
-                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium text-sm flex items-center gap-2"
+                className="flex items-center gap-2 rounded-lg bg-green-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-600"
               >
                 <Plus className="h-4 w-4" /> New Plot
               </button>
@@ -174,10 +183,7 @@ export function ManagementPage() {
 
           {/* Create Plot Form */}
           {showPlotForm && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
               <CreatePlotForm
                 facilityId={selectedFacility.facility_id}
                 onSuccess={() => {
@@ -191,35 +197,35 @@ export function ManagementPage() {
           {/* Existing Plots */}
           {!showPlotForm && (
             <>
-              <h4 className="text-md font-semibold text-gray-900 mb-3 mt-6">Existing Plots</h4>
+              <h4 className="text-md mt-6 mb-3 font-semibold text-gray-900">Existing Plots</h4>
               {plotsLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
                   {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="bg-gray-100 animate-pulse rounded-lg h-20"></div>
+                    <div key={i} className="h-20 animate-pulse rounded-lg bg-gray-100"></div>
                   ))}
                 </div>
               ) : plots && plots.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
                   {plots.map((plot) => (
                     <div
                       key={plot.plot_id}
-                      className="bg-gray-50 border border-gray-200 rounded-lg p-3"
+                      className="rounded-lg border border-gray-200 bg-gray-50 p-3"
                     >
-                      <h5 className="font-semibold text-sm text-gray-900">
+                      <h5 className="text-sm font-semibold text-gray-900">
                         {plot.name || `Plot ${plot.plot_id.slice(-8)}`}
                       </h5>
                       {plot.species && (
-                        <p className="text-xs text-gray-600 mt-1">🌱 {plot.species}</p>
+                        <p className="mt-1 text-xs text-gray-600">🌱 {plot.species}</p>
                       )}
                       {plot.location && (
-                        <p className="text-xs text-gray-600 mt-1">📍 {plot.location}</p>
+                        <p className="mt-1 text-xs text-gray-600">📍 {plot.location}</p>
                       )}
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-6 text-gray-500 bg-gray-50 rounded-lg">
-                  <Sprout className="mx-auto h-10 w-10 text-gray-300 mb-2" />
+                <div className="rounded-lg bg-gray-50 py-6 text-center text-gray-500">
+                  <Sprout className="mx-auto mb-2 h-10 w-10 text-gray-300" />
                   <p className="text-sm">No plots in this facility yet. Create one above!</p>
                 </div>
               )}
@@ -268,72 +274,69 @@ function CreateFacilityForm({
       setTimeout(() => {
         onSuccess(result.facility)
       }, 1000)
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to create facility')
+    } catch (err) {
+      const error = err as AxiosError<{ detail?: string }>
+      setError(error.response?.data?.detail || 'Failed to create facility')
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="rounded-lg bg-blue-50 p-4 border border-blue-200">
-        <h4 className="font-semibold text-blue-900 mb-4">Create New Facility</h4>
+      <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+        <h4 className="mb-4 font-semibold text-blue-900">Create New Facility</h4>
 
         {error && (
-          <div className="mb-4 rounded-lg bg-red-50 p-3 border border-red-200 flex items-center gap-2">
+          <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3">
             <AlertCircle className="h-5 w-5 text-red-600" />
             <p className="text-sm text-red-700">{error}</p>
           </div>
         )}
 
         {success && (
-          <div className="mb-4 rounded-lg bg-green-50 p-3 border border-green-200 flex items-center gap-2">
+          <div className="mb-4 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 p-3">
             <CheckCircle className="h-5 w-5 text-green-600" />
             <p className="text-sm text-green-700">Facility created successfully!</p>
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Facility Name *
-            </label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Facility Name *</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               placeholder="e.g., Greenhouse A"
               disabled={createMutation.isPending || success}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Location *
-            </label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Location *</label>
             <input
               type="text"
               value={formData.location}
               onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               placeholder="e.g., Building 1, Floor 2"
               disabled={createMutation.isPending || success}
             />
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 mt-4">
+        <div className="mt-4 flex justify-end gap-3">
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors font-medium"
+            className="rounded-lg bg-gray-300 px-4 py-2 font-medium text-gray-700 transition-colors hover:bg-gray-400"
             disabled={createMutation.isPending || success}
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium flex items-center gap-2"
+            className="flex items-center gap-2 rounded-lg bg-blue-500 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-600"
             disabled={createMutation.isPending || success}
           >
             {createMutation.isPending ? (
@@ -419,77 +422,72 @@ function CreatePlotForm({
       setTimeout(() => {
         onSuccess()
       }, 1000)
-    } catch (err: any) {
+    } catch (err) {
+      const error = err as AxiosError<{ detail?: string }>
       console.error('❌ Error creating plot:', err)
-      console.error('📦 Error response:', err.response?.data)
-      setError(err.response?.data?.detail || 'Failed to create plot or species')
+      console.error('📦 Error response:', error.response?.data)
+      setError(error.response?.data?.detail || 'Failed to create plot or species')
     }
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="rounded-lg bg-green-50 p-4 border border-green-200">
-        <h4 className="font-semibold text-green-900 mb-4">Create New Plot</h4>
+      <div className="rounded-lg border border-green-200 bg-green-50 p-4">
+        <h4 className="mb-4 font-semibold text-green-900">Create New Plot</h4>
 
         {error && (
-          <div className="mb-4 rounded-lg bg-red-50 p-3 border border-red-200 flex items-center gap-2">
+          <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3">
             <AlertCircle className="h-5 w-5 text-red-600" />
             <p className="text-sm text-red-700">{error}</p>
           </div>
         )}
 
         {success && (
-          <div className="mb-4 rounded-lg bg-green-50 p-3 border border-green-200 flex items-center gap-2">
+          <div className="mb-4 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 p-3">
             <CheckCircle className="h-5 w-5 text-green-600" />
             <p className="text-sm text-green-700">Plot created successfully!</p>
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Plot Name *
-            </label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Plot Name *</label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-green-500 focus:outline-none"
               placeholder="e.g., Plot A1"
               disabled={createMutation.isPending || success}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Location *
-            </label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Location *</label>
             <input
               type="text"
               value={formData.location}
               onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-green-500 focus:outline-none"
               placeholder="e.g., Row 1, Section A"
               disabled={createMutation.isPending || success}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              MAC Address *
-            </label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">MAC Address *</label>
             <input
               type="text"
               value={formData.mac_address}
               onChange={(e) => setFormData({ ...formData, mac_address: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-green-500 focus:outline-none"
               placeholder="e.g., AA:BB:CC:DD:EE:FF"
               disabled={createMutation.isPending || success}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="mb-1 block text-sm font-medium text-gray-700">
               Species (optional)
             </label>
             <select
@@ -505,7 +503,7 @@ function CreatePlotForm({
                   setFormData({ ...formData, species: value })
                 }
               }}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
+              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 focus:ring-2 focus:ring-green-500 focus:outline-none"
               disabled={createMutation.isPending || success || speciesLoading}
             >
               <option value="">No species (generic thresholds)</option>
@@ -522,54 +520,57 @@ function CreatePlotForm({
                 </>
               )}
             </select>
-            
+
             {/* Input de texto para especie personalizada */}
             {customSpeciesMode && (
               <input
                 type="text"
                 value={customSpeciesName}
                 onChange={(e) => setCustomSpeciesName(e.target.value)}
-                className="mt-2 w-full px-4 py-2 border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="mt-2 w-full rounded-lg border border-green-300 px-4 py-2 focus:ring-2 focus:ring-green-500 focus:outline-none"
                 placeholder="Enter new species name (e.g., Tomato)"
                 disabled={createMutation.isPending || success}
               />
             )}
-            
-            <p className="text-xs text-gray-500 mt-1">
-              {customSpeciesMode 
+
+            <p className="mt-1 text-xs text-gray-500">
+              {customSpeciesMode
                 ? 'Enter a name for the new species. It will be created automatically.'
                 : 'If no species is selected, generic default thresholds will be created'}
             </p>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Area (m²)
-            </label>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Area (m²)</label>
             <input
               type="number"
               step="0.01"
               value={formData.area || ''}
-              onChange={(e) => setFormData({ ...formData, area: e.target.value ? parseFloat(e.target.value) : undefined })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+              onChange={(e) =>
+                setFormData({
+                  ...formData,
+                  area: e.target.value ? parseFloat(e.target.value) : undefined,
+                })
+              }
+              className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:ring-2 focus:ring-green-500 focus:outline-none"
               placeholder="e.g., 10.5"
               disabled={createMutation.isPending || success}
             />
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 mt-4">
+        <div className="mt-4 flex justify-end gap-3">
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors font-medium"
+            className="rounded-lg bg-gray-300 px-4 py-2 font-medium text-gray-700 transition-colors hover:bg-gray-400"
             disabled={createMutation.isPending || success}
           >
             Cancel
           </button>
           <button
             type="submit"
-            className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors font-medium flex items-center gap-2"
+            className="flex items-center gap-2 rounded-lg bg-green-500 px-4 py-2 font-medium text-white transition-colors hover:bg-green-600"
             disabled={createMutation.isPending || success}
           >
             {createMutation.isPending ? (
@@ -588,4 +589,3 @@ function CreatePlotForm({
     </form>
   )
 }
-

@@ -68,7 +68,7 @@ export interface IrrigationEvent {
   duration?: number // minutes
   water_amount?: number // liters
   type?: 'manual' | 'automatic'
-  [key: string]: any
+  [key: string]: string | number | boolean | undefined
 }
 
 export interface LastIrrigationResponse {
@@ -93,6 +93,7 @@ export interface SpeciesThresholds {
   MaxLight?: number
   MinIrrigation?: number
   MaxIrrigation?: number
+  umbral_enabled?: boolean
 }
 
 export interface PlotThresholds {

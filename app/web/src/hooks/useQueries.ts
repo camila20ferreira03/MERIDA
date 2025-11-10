@@ -4,7 +4,12 @@ import { userService } from '@/services/userService'
 import { facilityService } from '@/services/facilityService'
 import { irrigationService } from '@/services/irrigationService'
 import { speciesService } from '@/services/speciesService'
-import type { CreatePlotRequest, UpdatePlotRequest, CreateFacilityRequest } from '@/types'
+import type {
+  CreatePlotRequest,
+  UpdatePlotRequest,
+  CreateFacilityRequest,
+  SpeciesThresholds,
+} from '@/types'
 
 // User queries
 export function useUser(userId: string) {
@@ -134,9 +139,9 @@ export function usePlotThresholds(plotId: string) {
 // Plot thresholds mutation
 export function useUpdatePlotThresholds() {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
-    mutationFn: ({ plotId, thresholds }: { plotId: string; thresholds: any }) =>
+    mutationFn: ({ plotId, thresholds }: { plotId: string; thresholds: SpeciesThresholds }) =>
       plotService.updatePlotThresholds(plotId, thresholds),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['plotThresholds', variables.plotId] })
@@ -155,7 +160,7 @@ export function useFacilityResponsibles(facilityId: string) {
 
 export function useUpdateFacilityResponsibles() {
   const queryClient = useQueryClient()
-  
+
   return useMutation({
     mutationFn: ({ facilityId, responsibles }: { facilityId: string; responsibles: string[] }) =>
       facilityService.updateFacilityResponsibles(facilityId, responsibles),
