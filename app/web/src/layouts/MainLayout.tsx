@@ -54,7 +54,7 @@ export function MainLayout() {
                 <div className="bg-white rounded-lg p-1.5">
                   <Leaf className="h-6 w-6 text-green-600" />
                 </div>
-                <span className="text-white text-lg font-bold">MERIDA</span>
+                <span className="text-white text-lg font-bold">MERIDA </span>
               </div>
               <button onClick={() => setSidebarOpen(false)} className="text-white hover:bg-white/20 rounded-lg p-1 transition-colors">
                 <XMarkIcon className="h-6 w-6" />
