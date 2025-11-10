@@ -26,6 +26,8 @@ const authConfig = {
 
 // Configure Amplify once at app startup
 Amplify.configure(authConfig)
+// Always log configured values once (helps diagnose blank or stale injection)
+console.info('[Auth Init] Cognito config applied', authConfig.Auth.Cognito)
 
 // Lightweight cache inspection & clearing utilities to combat stale pool/client IDs.
 // Usage in browser console (when VITE_DEBUG=true):
