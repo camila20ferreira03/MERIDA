@@ -286,7 +286,11 @@ def _fetch_facility_name(facility_id: Any) -> str:
 
 
 def _fetch_responsible_emails(business_id: Any, facility_id: Any) -> List[str]:
-    """Retrieve responsible emails directly from the Facility in DynamoDB."""
+    """
+    Retrieve responsible emails for a facility from DynamoDB.
+    Backend structure: FACILITY#{facility_id} / RESPONSIBLES
+    Field: "responsibles" (list of email strings)
+    """
     if not facility_id:
         logger.warning("Missing facility_id for responsible lookup")
         return []
@@ -307,20 +311,22 @@ def _fetch_responsible_emails(business_id: Any, facility_id: Any) -> List[str]:
         logger.info("No responsible record found for facility %s", facility_id)
         return []
 
-    # Get responsibles list
+    # Backend stores responsibles as a list of emails
     raw_emails = record.get("responsibles", [])
 
+    # Handle list format (standard)
     if isinstance(raw_emails, list):
         emails = [email for email in raw_emails if isinstance(email, str) and email.strip()]
-        logger.info("Found %d responsibles for facility %s", len(emails), facility_id)
+        logger.info("Found %d responsible(s) for facility %s", len(emails), facility_id)
         return emails
 
+    # Handle string format (backwards compatibility)
     if isinstance(raw_emails, str):
         emails = [email.strip() for email in raw_emails.split(",") if email.strip()]
-        logger.info("Found %d responsibles for facility %s (parsed from string)", len(emails), facility_id)
+        logger.info("Found %d responsible(s) for facility %s (parsed from CSV string)", len(emails), facility_id)
         return emails
 
-    logger.info("Responsible record for facility %s does not contain emails", facility_id)
+    logger.warning("Responsibles field for facility %s is not a list or string: %s", facility_id, type(raw_emails))
     return []
 
 
