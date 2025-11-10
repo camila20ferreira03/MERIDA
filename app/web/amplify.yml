@@ -4,6 +4,10 @@ applications:
       phases:
         preBuild:
           commands:
+            - 'echo "=== PreBuild: cleaning previous artifacts (if any) ==="'
+            - 'rm -rf dist .cache .vite build node_modules/.cache || true'
+            - 'echo "PreBuild Env Snapshot: USER_POOL=$VITE_COGNITO_USER_POOL_ID CLIENT_ID=$VITE_COGNITO_CLIENT_ID REGION=$VITE_AWS_REGION"'
+            - 'if [ -z "$VITE_COGNITO_USER_POOL_ID" ] || [ -z "$VITE_COGNITO_CLIENT_ID" ]; then echo "FATAL: Cognito env vars missing BEFORE install"; exit 1; fi'
             - npm install -g pnpm@latest
             - pnpm install --frozen-lockfile
         build:
@@ -12,6 +16,7 @@ applications:
             - 'echo "Cognito UserPoolId: $VITE_COGNITO_USER_POOL_ID"'
             - 'echo "Cognito ClientId: $VITE_COGNITO_CLIENT_ID"'
             - 'echo "AWS Region: $VITE_AWS_REGION"'
+            - 'node -e "console.log(\"Node sees: userPool=\"+process.env.VITE_COGNITO_USER_POOL_ID+\" clientId=\"+process.env.VITE_COGNITO_CLIENT_ID+\" region=\"+process.env.VITE_AWS_REGION)"'
             - 'if [ -z "$VITE_COGNITO_USER_POOL_ID" ] || [ -z "$VITE_COGNITO_CLIENT_ID" ]; then echo "ERROR: Missing required Cognito env vars (VITE_COGNITO_USER_POOL_ID, VITE_COGNITO_CLIENT_ID)"; exit 1; else echo "Cognito env vars present"; fi'
             - pnpm run build
       artifacts:
