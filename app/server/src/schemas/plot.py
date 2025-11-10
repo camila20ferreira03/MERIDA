@@ -8,6 +8,7 @@ class PlotBase(BaseModel):
     name: str
     location: str
     species_id: Optional[str] = None
+    mac_address: str
 
 class PlotState(BaseModel):
     plot_id: str
