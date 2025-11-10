@@ -8,6 +8,7 @@ applications:
             - pnpm install --frozen-lockfile
         build:
           commands:
+            - echo "Building with API URL:" $VITE_API_BASE_URL
             - pnpm run build
       artifacts:
         baseDirectory: dist
@@ -18,3 +19,5 @@ applications:
           - node_modules/**/*
           - ~/.pnpm-store/**/*
     appRoot: app/web
+    # Environment variables can be set in Amplify Console
+    # but you can also reference them here
