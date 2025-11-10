@@ -57,12 +57,12 @@ export function MainLayout() {
       )}
 
       {/* Desktop sidebar */}
-      <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-56 lg:flex-col">
-        <div className="flex flex-col border-r border-gray-200 bg-white">
+      <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
+        <div className="flex min-h-screen flex-col border-r border-gray-200 bg-white">
           <div className="flex h-16 items-center px-6">
             <span className="text-primary-600 text-xl font-bold">MERIDA Smart Grow</span>
           </div>
-          <nav className="flex-1 space-y-1 px-4 py-4">
+            <nav className="flex-1 space-y-1 px-4 py-4">
             {navigation.map((item) => (
               <Link
                 key={item.name}
@@ -87,7 +87,7 @@ export function MainLayout() {
       </div>
 
       {/* Main content */}
-      <div className="lg:pl-56">
+      <div className="lg:pl-64">
         {/* Top bar */}
         <div className="sticky top-0 z-10 flex h-16 border-b border-gray-200 bg-white lg:hidden">
           <button
