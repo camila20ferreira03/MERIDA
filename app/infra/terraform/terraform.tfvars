@@ -26,6 +26,19 @@ alert_lambda_log_retention_days = 14
 alert_lambda_tolerance          = 0.1
 alert_lambda_batch_size         = 10
 
+# Responsible Sync Lambda Configuration
+responsible_sync_lambda_function_name      = "ResponsibleSubscriptionSync"
+responsible_sync_lambda_handler            = "app.lambda_handler"
+responsible_sync_lambda_runtime            = "python3.10"
+responsible_sync_lambda_source_path        = "../lambdas/lambda_responsible_sync"
+responsible_sync_lambda_timeout            = 30
+responsible_sync_lambda_memory_size        = 256
+responsible_sync_lambda_log_retention_days = 14
+
+# Terraform State Backend
+terraform_state_bucket_name       = "merida-terraform-state-037689899742"
+terraform_state_lock_table_name   = "merida-terraform-lock"
+
 # AWS Academy LabRole ARN
 # For AWS Academy, the role ARN should be: arn:aws:iam::<ACCOUNT_ID>:role/LabRole
 # This value can be overridden from environment with TF_VAR_lab_role_arn
@@ -38,6 +51,7 @@ dynamodb_billing_mode  = "PAY_PER_REQUEST" # On-demand pricing
 dynamodb_gsi_name      = "GSI"
 dynamodb_enable_pitr   = true # Point-in-Time Recovery
 dynamodb_ttl_attribute = ""   # Leave empty to disable TTL
+
 
 # Lambda Environment Variables (optional)
 lambda_environment_variables = {
@@ -120,12 +134,10 @@ cognito_logout_urls    = ["http://localhost:3000", "http://localhost:3000/"]
 # Amplify Configuration
 # ===========================================
 # Note: Set to false if AWS Academy doesn't support Amplify
-enable_amplify = false # Disabled by default - set to true after configuring
+enable_amplify = false # Temporarily disable Amplify deployment
 
 # IMPORTANT: Update these values before enabling Amplify
 amplify_app_name           = "merida-smart-grow-frontend"
-amplify_repository_url     = "" # Add your repo URL: https://github.com/USERNAME/MERIDA
-github_access_token        = "" # Add your GitHub Personal Access Token
 amplify_main_branch        = "main"
 amplify_enable_pr_previews = false
 amplify_enable_auto_build  = true

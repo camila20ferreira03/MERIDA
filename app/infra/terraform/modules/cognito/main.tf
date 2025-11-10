@@ -19,17 +19,6 @@ resource "aws_cognito_user_pool" "main" {
     }
   }
 
-  schema {
-    name                = "name"
-    attribute_data_type = "String"
-    required            = true
-    mutable             = true
-
-    string_attribute_constraints {
-      min_length = 1
-      max_length = 256
-    }
-  }
 
   # Password policy
   password_policy {
@@ -107,16 +96,8 @@ resource "aws_cognito_user_pool_client" "web_client" {
   }
 
   # Read and write attributes
-  read_attributes = [
-    "email",
-    "email_verified",
-    "name",
-  ]
-
-  write_attributes = [
-    "email",
-    "name",
-  ]
+  read_attributes  = ["email", "email_verified"]
+  write_attributes = ["email"]
 
   # Prevent user existence errors
   prevent_user_existence_errors = "ENABLED"

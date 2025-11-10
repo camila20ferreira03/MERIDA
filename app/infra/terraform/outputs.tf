@@ -47,6 +47,31 @@ output "alerts_sns_topic_arn" {
 }
 
 # IoT Rule
+output "cognito_user_pool_id" {
+  description = "ID of the Cognito User Pool"
+  value       = module.cognito.user_pool_id
+}
+
+output "cognito_user_pool_arn" {
+  description = "ARN of the Cognito User Pool"
+  value       = module.cognito.user_pool_arn
+}
+
+output "cognito_user_pool_client_id" {
+  description = "App client ID for Cognito"
+  value       = module.cognito.user_pool_client_id
+}
+
+output "cognito_user_pool_endpoint" {
+  description = "Hosted UI endpoint for Cognito"
+  value       = module.cognito.user_pool_endpoint
+}
+
+output "cognito_user_pool_domain" {
+  description = "Domain prefix used for the Cognito hosted UI (empty if not configured)"
+  value       = module.cognito.user_pool_domain
+}
+
 output "iot_rule_arn" {
   description = "ARN of the IoT rule"
   value       = module.iot_rule.rule_arn
@@ -217,35 +242,6 @@ output "ecs_target_group_arn" {
 output "ecs_log_group_name" {
   description = "Name of the CloudWatch log group"
   value       = module.ecs.log_group_name
-}
-
-# ===========================================
-# Cognito Outputs
-# ===========================================
-
-output "cognito_user_pool_id" {
-  description = "ID of the Cognito User Pool"
-  value       = module.cognito.user_pool_id
-}
-
-output "cognito_user_pool_arn" {
-  description = "ARN of the Cognito User Pool"
-  value       = module.cognito.user_pool_arn
-}
-
-output "cognito_user_pool_endpoint" {
-  description = "Endpoint of the Cognito User Pool"
-  value       = module.cognito.user_pool_endpoint
-}
-
-output "cognito_client_id" {
-  description = "ID of the Cognito User Pool Client"
-  value       = module.cognito.user_pool_client_id
-}
-
-output "cognito_user_pool_domain" {
-  description = "Domain of the Cognito User Pool (if created)"
-  value       = module.cognito.user_pool_domain
 }
 
 # ===========================================

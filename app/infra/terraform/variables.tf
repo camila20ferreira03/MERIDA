@@ -88,6 +88,60 @@ variable "alert_lambda_batch_size" {
   default     = 10
 }
 
+variable "responsible_sync_lambda_function_name" {
+  description = "Name of the Lambda function that synchronises SNS subscriptions with facility responsibles"
+  type        = string
+  default     = "ResponsibleSubscriptionSync"
+}
+
+variable "responsible_sync_lambda_handler" {
+  description = "Lambda handler for the responsible sync function"
+  type        = string
+  default     = "app.lambda_handler"
+}
+
+variable "responsible_sync_lambda_runtime" {
+  description = "Runtime for the responsible sync Lambda"
+  type        = string
+  default     = "python3.11"
+}
+
+variable "responsible_sync_lambda_source_path" {
+  description = "Source path for the responsible sync Lambda code"
+  type        = string
+  default     = "../lambdas/lambda_responsible_sync"
+}
+
+variable "responsible_sync_lambda_timeout" {
+  description = "Timeout in seconds for the responsible sync Lambda"
+  type        = number
+  default     = 30
+}
+
+variable "responsible_sync_lambda_memory_size" {
+  description = "Memory size in MB for the responsible sync Lambda"
+  type        = number
+  default     = 256
+}
+
+variable "responsible_sync_lambda_log_retention_days" {
+  description = "CloudWatch Logs retention in days for the responsible sync Lambda"
+  type        = number
+  default     = 14
+}
+
+variable "terraform_state_bucket_name" {
+  description = "S3 bucket name used to store Terraform remote state"
+  type        = string
+  default     = "merida-terraform-state-037689899742"
+}
+
+variable "terraform_state_lock_table_name" {
+  description = "DynamoDB table name used for Terraform state locking"
+  type        = string
+  default     = "merida-terraform-lock"
+}
+
 variable "alerts_sns_topic_name" {
   description = "SNS topic name used to deliver facility alert emails"
   type        = string

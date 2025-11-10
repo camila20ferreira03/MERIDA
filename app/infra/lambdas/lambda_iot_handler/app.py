@@ -6,7 +6,6 @@ from decimal import Decimal
 import re
 
 # Initialize DynamoDB client
-# AWS_REGION is automatically available in Lambda environment
 dynamodb = boto3.resource('dynamodb')
 table_name = os.environ.get('DYNAMODB_TABLE', 'SmartGrowData')
 table = dynamodb.Table(table_name)
@@ -101,13 +100,48 @@ def format_for_dynamodb(payload, plot_id):
         else:
             return obj
     
+    # Helper to convert metadata values (including numbers) to DynamoDB-compatible types
+    def convert_scalar(value):
+        if isinstance(value, float):
+            return Decimal(str(value))
+        if isinstance(value, dict):
+            return convert_to_decimal(value)
+        if isinstance(value, list):
+            return [convert_scalar(item) for item in value]
+        return value
+
     # Create base DynamoDB item
     item = {
         'PK': f'PLOT#{plot_id}',
         'Timestamp': timestamp,
-        'GSI_PK': 'FACILITY#1',  # You can make this dynamic based on your logic
         'GSI_SK': f'TIMESTAMP#{timestamp}',
     }
+    
+    # Preserve metadata (Species, Facility, Business, etc.)
+    metadata_map = {
+        'SpeciesId': 'SpeciesId',
+        'species_id': 'SpeciesId',
+        'FacilityId': 'FacilityId',
+        'facility_id': 'FacilityId',
+        'BusinessId': 'BusinessId',
+        'business_id': 'BusinessId',
+        'PlotName': 'PlotName',
+        'plot_name': 'PlotName',
+    }
+
+    for source_key, target_key in metadata_map.items():
+        if source_key in payload and payload[source_key] not in (None, ''):
+            item[target_key] = convert_scalar(payload[source_key])
+
+    # Default PlotId metadata for convenience
+    item['PlotId'] = plot_id
+
+    # Set facility-based GSI partition key if available
+    facility_id = item.get('FacilityId')
+    if facility_id:
+        item['GSI_PK'] = f'FACILITY#{facility_id}'
+    else:
+        item['GSI_PK'] = 'FACILITY#UNKNOWN'
     
     # Process based on message type
     if message_type == 'state':

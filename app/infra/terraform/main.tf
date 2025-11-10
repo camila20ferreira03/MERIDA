@@ -53,6 +53,7 @@ module "amplify" {
       VITE_COGNITO_USER_POOL_ID = module.cognito.user_pool_id
       VITE_COGNITO_CLIENT_ID    = module.cognito.user_pool_client_id
       VITE_API_BASE_URL         = var.api_base_url
+      AMPLIFY_MONOREPO_APP_ROOT = "app/web"
     }
   )
 

@@ -2,7 +2,7 @@ import logging
 import os
 from datetime import datetime
 from decimal import Decimal
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Sequence, Tuple
 
 import boto3
 from boto3.dynamodb.types import TypeDeserializer
@@ -17,17 +17,14 @@ dynamodb = boto3.resource("dynamodb")
 table = dynamodb.Table(os.environ["DYNAMO_TABLE_NAME"])
 
 sns_client = boto3.client("sns")
-cognito_client = boto3.client("cognito-idp")
 
-USER_POOL_ID = os.environ.get("USER_POOL_ID")
 ALERTS_TOPIC_ARN = os.environ.get("ALERTS_TOPIC_ARN")
-TOLERANCE_PERCENT = float(os.environ.get("TOLERANCE_PERCENT", "0.1"))
 
-METRIC_TO_IDEAL_FIELD = {
-    "temperature": "IdealTemperature",
-    "humidity": "IdealHumidity",
-    "light": "IdealLight",
-    "irrigation": "IdealIrrigation",
+METRIC_TO_RANGE_FIELDS: Dict[str, Sequence[str]] = {
+    "temperature": ("MinTemperature", "MaxTemperature"),
+    "humidity": ("MinHumidity", "MaxHumidity"),
+    "light": ("MinLight", "MaxLight"),
+    "irrigation": ("MinIrrigation", "MaxIrrigation"),
 }
 
 
@@ -80,6 +77,7 @@ def _process_plot_state(item: Dict[str, Any]) -> bool:
     timestamp = item.get("Timestamp") or sk.split("#", maxsplit=1)[-1]
     species_id = item.get("SpeciesId") or item.get("species_id")
     facility_id = item.get("FacilityId") or item.get("facility_id")
+    business_id = item.get("BusinessId") or item.get("business_id")
 
     if not species_id:
         logger.info("State %s missing SpeciesId, skipping alert evaluation", sk)
@@ -95,14 +93,16 @@ def _process_plot_state(item: Dict[str, Any]) -> bool:
         )
         return True
 
+    business_id = business_id or ideal.get("BusinessId") or ideal.get("business_id")
+
     deviations = _find_deviations(item, ideal)
     if not deviations:
         logger.info("Plot %s measurements at %s are within acceptable range", plot_id, timestamp)
         return True
 
-    recipients = _fetch_recipient_emails()
+    recipients = _fetch_responsible_emails(business_id, facility_id)
     if not recipients:
-        logger.warning("No Cognito user emails found; skipping SNS notification")
+        logger.warning("No responsible emails found for facility %s (business=%s); skipping SNS notification", facility_id, business_id)
         return True
 
     _publish_alert(
@@ -143,78 +143,87 @@ def _fetch_ideal_species_record(facility_id: Any, species_id: Any) -> Dict[str, 
 
 def _find_deviations(
     measurement: Dict[str, Any],
-    ideal: Dict[str, Any],
+    ideal_ranges: Dict[str, Any],
 ) -> List[Dict[str, Any]]:
-    """Compare measurement against ideal values and return deviation details."""
+    """Compare measurement against configured ranges and return deviation details."""
     deviations: List[Dict[str, Any]] = []
 
-    for metric, ideal_field in METRIC_TO_IDEAL_FIELD.items():
-        if metric not in measurement or ideal_field not in ideal:
+    for metric, range_fields in METRIC_TO_RANGE_FIELDS.items():
+        if metric not in measurement:
             continue
 
+        lower_field, upper_field = range_fields
+        lower_bound = _to_float(_first_present(ideal_ranges, (lower_field, lower_field.lower())))
+        upper_bound = _to_float(_first_present(ideal_ranges, (upper_field, upper_field.lower())))
         actual_value = _to_float(measurement[metric])
-        ideal_value = _to_float(ideal[ideal_field])
 
-        if ideal_value is None or actual_value is None:
+        if actual_value is None:
             continue
 
-        threshold = abs(ideal_value) * TOLERANCE_PERCENT
-        lower_bound = ideal_value - threshold
-        upper_bound = ideal_value + threshold
-
-        if actual_value < lower_bound or actual_value > upper_bound:
+        if lower_bound is not None and actual_value < lower_bound:
             deviations.append(
                 {
                     "metric": metric,
                     "actual": actual_value,
-                    "ideal": ideal_value,
                     "lower_bound": lower_bound,
                     "upper_bound": upper_bound,
+                    "direction": "below",
+                }
+            )
+            continue
+
+        if upper_bound is not None and actual_value > upper_bound:
+            deviations.append(
+                {
+                    "metric": metric,
+                    "actual": actual_value,
+                    "lower_bound": lower_bound,
+                    "upper_bound": upper_bound,
+                    "direction": "above",
                 }
             )
 
     return deviations
 
 
-def _fetch_recipient_emails() -> List[str]:
-    """Retrieve user emails from Cognito User Pool."""
-    if not USER_POOL_ID:
-        logger.error("USER_POOL_ID environment variable is required")
+def _fetch_responsible_emails(business_id: Any, facility_id: Any) -> List[str]:
+    """Retrieve responsible emails from the Business → Facility mapping in DynamoDB."""
+    if not business_id or not facility_id:
+        logger.warning("Missing business_id (%s) or facility_id (%s) for responsible lookup", business_id, facility_id)
         return []
 
-    emails: List[str] = []
-    pagination_token = None
+    key = {
+        "PK": f"BUSINESS#{business_id}",
+        "SK": f"FACILITY#{facility_id}",
+    }
 
-    while True:
-        try:
-            params: Dict[str, Any] = {"UserPoolId": USER_POOL_ID}
-            if pagination_token:
-                params["PaginationToken"] = pagination_token
+    try:
+        response = table.get_item(Key=key)
+    except ClientError as error:  # pragma: no cover - AWS errors logged
+        logger.error("Failed to fetch responsibles for %s: %s", key, error)
+        return []
 
-            response = cognito_client.list_users(**params)
-        except ClientError as error:  # pragma: no cover
-            logger.error("Failed to list Cognito users: %s", error)
-            break
+    record = response.get("Item")
+    if not record:
+        logger.info("No responsible record found for business %s / facility %s", business_id, facility_id)
+        return []
 
-        for user in response.get("Users", []):
-            email = _extract_email(user)
-            if email:
-                emails.append(email)
+    # Accept multiple possible attribute names to stay compatible with existing data
+    raw_emails = (
+        record.get("responsibles")
+        or record.get("Responsibles")
+        or record.get("Users")
+        or record.get("users")
+    )
 
-        pagination_token = response.get("PaginationToken")
-        if not pagination_token:
-            break
+    if isinstance(raw_emails, list):
+        return [email for email in raw_emails if isinstance(email, str) and email.strip()]
 
-    return emails
+    if isinstance(raw_emails, str):
+        return [email.strip() for email in raw_emails.split(",") if email.strip()]
 
-
-def _extract_email(user: Dict[str, Any]) -> str:
-    """Extract email attribute from Cognito user description."""
-    attributes = user.get("Attributes", [])
-    for attribute in attributes:
-        if attribute.get("Name") == "email":
-            return attribute.get("Value")
-    return ""
+    logger.info("Responsible record for business %s / facility %s does not contain emails", business_id, facility_id)
+    return []
 
 
 def _publish_alert(
@@ -245,8 +254,9 @@ def _publish_alert(
         lines.append(
             (
                 f"- {deviation['metric'].capitalize()}: actual={deviation['actual']:.2f}, "
-                f"ideal={deviation['ideal']:.2f} "
-                f"(allowed {deviation['lower_bound']:.2f} - {deviation['upper_bound']:.2f})"
+                f"allowed range "
+                f"{'' if deviation.get('lower_bound') is None else '>=' + format(deviation['lower_bound'], '.2f') + ' '}"
+                f"{'' if deviation.get('upper_bound') is None else '<= ' + format(deviation['upper_bound'], '.2f')}"
             )
         )
 
@@ -287,4 +297,12 @@ def _to_float(value: Any) -> float:
     except (TypeError, ValueError):
         logger.debug("Unable to convert value %s (%s) to float", value, type(value))
         return None
+
+
+def _first_present(source: Dict[str, Any], keys: Sequence[str]) -> Any:
+    """Return the first non-null value for the provided key aliases."""
+    for key in keys:
+        if key in source and source[key] not in (None, ""):
+            return source[key]
+    return None
 

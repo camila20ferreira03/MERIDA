@@ -33,9 +33,7 @@ module "lambda_alert_processor" {
 
   environment_variables = {
     DYNAMO_TABLE_NAME  = module.dynamodb_table.table_name
-    USER_POOL_ID       = module.cognito.user_pool_id
     ALERTS_TOPIC_ARN   = aws_sns_topic.alerts.arn
-    TOLERANCE_PERCENT  = format("%.4f", var.alert_lambda_tolerance)
   }
 
   cloudwatch_logs_retention_in_days = var.alert_lambda_log_retention_days

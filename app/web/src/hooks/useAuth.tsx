@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
-import { signIn, signOut, getCurrentUser } from 'aws-amplify/auth'
+import { signIn, signOut, getCurrentUser, confirmSignIn } from 'aws-amplify/auth'
 
 interface User {
   username: string
@@ -7,10 +7,20 @@ interface User {
   signInDetails?: unknown
 }
 
+interface LoginResult {
+  requiresNewPassword: boolean
+  requiredAttributes?: string[]
+}
+
 interface AuthContextType {
   user: User | null
   loading: boolean
-  login: (username: string, password: string) => Promise<void>
+  login: (
+    username: string,
+    password: string,
+    newPassword?: string,
+    attributes?: Record<string, string>
+  ) => Promise<LoginResult>
   logout: () => Promise<void>
   isAuthenticated: boolean
 }
@@ -38,10 +48,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function login(username: string, password: string) {
+  async function login(
+    username: string,
+    password: string,
+    newPassword?: string,
+    attributes?: Record<string, string>,
+  ): Promise<LoginResult> {
     try {
-      await signIn({ username, password })
+      const response = await signIn({ username, password })
+      console.debug('[Auth] signIn response:', response)
+
+      const nextStep = response.nextStep?.signInStep
+      const requiredAttributes =
+        (response.nextStep as { additionalInfo?: { requiredAttributes?: string[] } })?.additionalInfo
+          ?.requiredAttributes ?? []
+
+      if (nextStep === 'CONFIRM_SIGN_IN_WITH_NEW_PASSWORD_REQUIRED') {
+        if (!newPassword) {
+          return { requiresNewPassword: true, requiredAttributes }
+        }
+
+        const userAttributes: Record<string, string> = { ...(attributes ?? {}) }
+
+        console.debug('[Auth] required attributes:', requiredAttributes)
+        if (requiredAttributes.includes('email') && !userAttributes.email && username.includes('@')) {
+          userAttributes.email = username
+        }
+
+        if (requiredAttributes.includes('name') && !userAttributes.name) {
+          userAttributes.name = attributes?.name || username
+        }
+        if (requiredAttributes.includes('given_name') && !userAttributes.given_name) {
+          userAttributes.given_name = attributes?.given_name || userAttributes.name || username
+        }
+        if (requiredAttributes.includes('family_name') && !userAttributes.family_name) {
+          userAttributes.family_name = attributes?.family_name || userAttributes.name || username
+        }
+
+        if (requiredAttributes.includes('preferred_username') && !userAttributes.preferred_username) {
+          userAttributes.preferred_username = username
+        }
+
+        console.debug('[Auth] confirmSignIn userAttributes:', userAttributes)
+
+        await confirmSignIn({
+          challengeResponse: newPassword,
+          options: {
+            userAttributes,
+          },
+        })
+      }
+
       await checkUser()
+      return { requiresNewPassword: false }
     } catch (error) {
       console.error('Login error:', error)
       throw error
