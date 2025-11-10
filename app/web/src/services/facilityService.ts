@@ -10,7 +10,7 @@ export const facilityService = {
     const response = await apiClient.get(`/facilities/${facilityId}`)
     return response.data
   },
-  createFacility: async (data: CreateFacilityRequest): Promise<any> => {
+  createFacility: async (data: CreateFacilityRequest): Promise<{ facility: Facility }> => {
     const response = await apiClient.post('/facilities/', data)
     return response.data
   },

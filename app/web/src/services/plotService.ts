@@ -1,5 +1,11 @@
 import { apiClient } from './api'
-import type { PlotMetadata, PlotState, CreatePlotRequest, UpdatePlotRequest } from '@/types'
+import type {
+  PlotMetadata,
+  PlotState,
+  CreatePlotRequest,
+  UpdatePlotRequest,
+  SpeciesThresholds,
+} from '@/types'
 
 export const plotService = {
   // Get all plots for a user
@@ -52,13 +58,16 @@ export const plotService = {
   },
 
   // Get plot thresholds based on assigned species
-  getPlotThresholds: async (plotId: string) => {
+  getPlotThresholds: async (plotId: string): Promise<SpeciesThresholds> => {
     const response = await apiClient.get(`/plots/${plotId}/thresholds`)
     return response.data
   },
 
   // Update plot thresholds and activate them
-  updatePlotThresholds: async (plotId: string, thresholds: any) => {
+  updatePlotThresholds: async (
+    plotId: string,
+    thresholds: SpeciesThresholds
+  ): Promise<SpeciesThresholds> => {
     const response = await apiClient.put(`/plots/${plotId}/thresholds`, thresholds)
     return response.data
   },

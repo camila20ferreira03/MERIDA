@@ -1,18 +1,45 @@
 version: 1
-frontend:
-  phases:
-    preBuild:
-      commands:
-        - npm install -g pnpm@latest
-        - pnpm install --frozen-lockfile
-    build:
-      commands:
-        - pnpm run build
-  artifacts:
-    baseDirectory: dist
-    files:
-      - '**/*'
-  cache:
-    paths:
-      - node_modules/**/*
-      - ~/.pnpm-store/**/*
+applications:
+  - frontend:
+      phases:
+        preBuild:
+          commands:
+            - 'echo "=== PreBuild: cleaning previous artifacts (if any) ==="'
+            - 'rm -rf dist .cache .vite build node_modules/.cache || true'
+            - 'echo "PreBuild Env Snapshot: USER_POOL=$VITE_COGNITO_USER_POOL_ID CLIENT_ID=$VITE_COGNITO_CLIENT_ID REGION=$VITE_AWS_REGION"'
+            - 'if [ -z "$VITE_COGNITO_USER_POOL_ID" ] || [ -z "$VITE_COGNITO_CLIENT_ID" ]; then echo "FATAL: Cognito env vars missing BEFORE install"; exit 1; fi'
+            - npm install -g pnpm@latest
+            - pnpm install --frozen-lockfile
+        build:
+          commands:
+            - 'echo "Building with API URL: $VITE_API_BASE_URL"'
+            - 'echo "Cognito UserPoolId: $VITE_COGNITO_USER_POOL_ID"'
+            - 'echo "Cognito ClientId: $VITE_COGNITO_CLIENT_ID"'
+            - 'echo "AWS Region: $VITE_AWS_REGION"'
+            - 'node -e "console.log(\"Node sees: userPool=\"+process.env.VITE_COGNITO_USER_POOL_ID+\" clientId=\"+process.env.VITE_COGNITO_CLIENT_ID+\" region=\"+process.env.VITE_AWS_REGION)"'
+            - 'if [ -z "$VITE_COGNITO_USER_POOL_ID" ] || [ -z "$VITE_COGNITO_CLIENT_ID" ]; then echo "ERROR: Missing required Cognito env vars (VITE_COGNITO_USER_POOL_ID, VITE_COGNITO_CLIENT_ID)"; exit 1; else echo "Cognito env vars present"; fi'
+            - pnpm run build
+      artifacts:
+        baseDirectory: dist
+        files:
+          - '**/*'
+      cache:
+        paths:
+          - node_modules/**/*
+          - ~/.pnpm-store/**/*
+    appRoot: app/web
+    customHeaders:
+      - pattern: '/index.html'
+        headers:
+          - key: 'Cache-Control'
+            value: 'no-store, must-revalidate'
+      - pattern: '**/*.js'
+        headers:
+          - key: 'Cache-Control'
+            value: 'public, max-age=31536000, immutable'
+      - pattern: '**/*.css'
+        headers:
+          - key: 'Cache-Control'
+            value: 'public, max-age=31536000, immutable'
+    # Environment variables can be set in Amplify Console
+    # but you can also reference them here

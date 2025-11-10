@@ -1,8 +1,13 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mail, Building2, Plus, Trash2, AlertCircle, CheckCircle, Users } from 'lucide-react'
-import { useFacilities, useFacilityResponsibles, useUpdateFacilityResponsibles } from '@/hooks/useQueries'
+import {
+  useFacilities,
+  useFacilityResponsibles,
+  useUpdateFacilityResponsibles,
+} from '@/hooks/useQueries'
 import type { Facility } from '@/types'
+import type { AxiosError } from 'axios'
 
 export function ResponsiblesPage() {
   const [selectedFacility, setSelectedFacility] = useState<Facility | null>(null)
@@ -11,9 +16,9 @@ export function ResponsiblesPage() {
   return (
     <div className="space-y-6">
       {/* Facility Selector */}
-      <div className="rounded-lg bg-white p-6 shadow-sm border border-gray-200">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="bg-blue-100 rounded-lg p-2">
+      <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="mb-4 flex items-center gap-3">
+          <div className="rounded-lg bg-blue-100 p-2">
             <Building2 className="h-6 w-6 text-blue-600" />
           </div>
           <div>
@@ -23,18 +28,18 @@ export function ResponsiblesPage() {
         </div>
 
         {facilitiesLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-gray-100 animate-pulse rounded-lg h-20"></div>
+              <div key={i} className="h-20 animate-pulse rounded-lg bg-gray-100"></div>
             ))}
           </div>
         ) : facilities && facilities.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             {facilities.map((facility) => (
               <button
                 key={facility.facility_id}
                 onClick={() => setSelectedFacility(facility)}
-                className={`p-4 rounded-lg border-2 text-left transition-all ${
+                className={`rounded-lg border-2 p-4 text-left transition-all ${
                   selectedFacility?.facility_id === facility.facility_id
                     ? 'border-blue-500 bg-blue-50'
                     : 'border-gray-200 bg-white hover:border-blue-300'
@@ -42,14 +47,14 @@ export function ResponsiblesPage() {
               >
                 <h4 className="font-semibold text-gray-900">{facility.name}</h4>
                 {facility.location && (
-                  <p className="text-sm text-gray-600 mt-1">📍 {facility.location}</p>
+                  <p className="mt-1 text-sm text-gray-600">📍 {facility.location}</p>
                 )}
               </button>
             ))}
           </div>
         ) : (
-          <div className="text-center py-8 text-gray-500">
-            <Building2 className="mx-auto h-12 w-12 text-gray-300 mb-2" />
+          <div className="py-8 text-center text-gray-500">
+            <Building2 className="mx-auto mb-2 h-12 w-12 text-gray-300" />
             <p>No facilities found</p>
           </div>
         )}
@@ -63,7 +68,10 @@ export function ResponsiblesPage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
           >
-            <ResponsiblesManager facilityId={selectedFacility.facility_id} facilityName={selectedFacility.name} />
+            <ResponsiblesManager
+              facilityId={selectedFacility.facility_id}
+              facilityName={selectedFacility.name}
+            />
           </motion.div>
         )}
       </AnimatePresence>
@@ -71,7 +79,13 @@ export function ResponsiblesPage() {
   )
 }
 
-function ResponsiblesManager({ facilityId, facilityName }: { facilityId: string; facilityName: string }) {
+function ResponsiblesManager({
+  facilityId,
+  facilityName,
+}: {
+  facilityId: string
+  facilityName: string
+}) {
   const { data, isLoading, error } = useFacilityResponsibles(facilityId)
   const updateMutation = useUpdateFacilityResponsibles()
 
@@ -94,34 +108,35 @@ function ResponsiblesManager({ facilityId, facilityName }: { facilityId: string;
 
   const handleAddEmail = async () => {
     const trimmed = newEmail.trim()
-    
+
     if (!trimmed) {
       setValidationError('Email cannot be empty')
       return
     }
-    
+
     if (!validateEmail(trimmed)) {
       setValidationError('Invalid email format')
       return
     }
-    
+
     if (emails.includes(trimmed)) {
       setValidationError('Email already added')
       return
     }
-    
+
     const newEmails = [...emails, trimmed]
     setEmails(newEmails)
     setNewEmail('')
     setValidationError('')
-    
+
     // Guardar automáticamente
     try {
       await updateMutation.mutateAsync({ facilityId, responsibles: newEmails })
       setShowSuccess(true)
       setTimeout(() => setShowSuccess(false), 3000)
-    } catch (error: any) {
-      console.error('Error updating responsibles:', error)
+    } catch (err) {
+      const error = err as AxiosError<{ detail?: string }>
+      console.error('Error updating responsibles:', err)
       setValidationError(error.response?.data?.detail || 'Failed to save email')
       // Revertir si falla
       setEmails(emails)
@@ -129,16 +144,17 @@ function ResponsiblesManager({ facilityId, facilityName }: { facilityId: string;
   }
 
   const handleRemoveEmail = async (emailToRemove: string) => {
-    const newEmails = emails.filter(e => e !== emailToRemove)
+    const newEmails = emails.filter((e) => e !== emailToRemove)
     setEmails(newEmails)
-    
+
     // Guardar automáticamente
     try {
       await updateMutation.mutateAsync({ facilityId, responsibles: newEmails })
       setShowSuccess(true)
       setTimeout(() => setShowSuccess(false), 3000)
-    } catch (error: any) {
-      console.error('Error updating responsibles:', error)
+    } catch (err) {
+      const error = err as AxiosError<{ detail?: string }>
+      console.error('Error updating responsibles:', err)
       setValidationError(error.response?.data?.detail || 'Failed to remove email')
       // Revertir si falla
       setEmails([...emails])
@@ -147,7 +163,7 @@ function ResponsiblesManager({ facilityId, facilityName }: { facilityId: string;
 
   if (isLoading) {
     return (
-      <div className="flex h-64 items-center justify-center rounded-lg bg-white border border-gray-200">
+      <div className="flex h-64 items-center justify-center rounded-lg border border-gray-200 bg-white">
         <div className="h-12 w-12 animate-spin rounded-full border-t-2 border-b-2 border-blue-600"></div>
       </div>
     )
@@ -155,9 +171,9 @@ function ResponsiblesManager({ facilityId, facilityName }: { facilityId: string;
 
   if (error) {
     return (
-      <div className="rounded-lg bg-red-50 p-6 text-center border border-red-200">
-        <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-4" />
-        <h3 className="text-lg font-semibold text-red-900 mb-2">Error loading responsibles</h3>
+      <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
+        <AlertCircle className="mx-auto mb-4 h-12 w-12 text-red-500" />
+        <h3 className="mb-2 text-lg font-semibold text-red-900">Error loading responsibles</h3>
         <p className="text-red-700">
           {error instanceof Error ? error.message : 'Failed to fetch responsibles'}
         </p>
@@ -166,22 +182,22 @@ function ResponsiblesManager({ facilityId, facilityName }: { facilityId: string;
   }
 
   return (
-    <div className="rounded-lg bg-white p-6 shadow-sm border border-gray-200 space-y-6">
+    <div className="space-y-6 rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
       {/* Success Message */}
       {showSuccess && (
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="rounded-lg bg-green-50 p-4 border border-green-200 flex items-center gap-3"
+          className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 p-4"
         >
           <CheckCircle className="h-6 w-6 text-green-600" />
-          <p className="text-green-800 font-medium">Responsibles updated successfully!</p>
+          <p className="font-medium text-green-800">Responsibles updated successfully!</p>
         </motion.div>
       )}
 
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="bg-purple-100 rounded-lg p-3">
+        <div className="rounded-lg bg-purple-100 p-3">
           <Users className="h-6 w-6 text-purple-600" />
         </div>
         <div>
@@ -194,8 +210,8 @@ function ResponsiblesManager({ facilityId, facilityName }: { facilityId: string;
       <div className="space-y-2">
         <label className="text-sm font-medium text-gray-700">Add Email Address</label>
         <div className="flex gap-2">
-          <div className="flex-1 relative">
-            <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <div className="relative flex-1">
+            <Mail className="absolute top-1/2 left-3 h-5 w-5 -translate-y-1/2 transform text-gray-400" />
             <input
               type="email"
               value={newEmail}
@@ -209,14 +225,14 @@ function ResponsiblesManager({ facilityId, facilityName }: { facilityId: string;
                 }
               }}
               placeholder="responsible@example.com"
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full rounded-lg border border-gray-300 py-2 pr-4 pl-10 focus:ring-2 focus:ring-blue-500 focus:outline-none"
               disabled={updateMutation.isPending}
             />
           </div>
           <button
             onClick={handleAddEmail}
             disabled={updateMutation.isPending}
-            className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 rounded-lg bg-blue-500 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {updateMutation.isPending ? (
               <>
@@ -231,9 +247,7 @@ function ResponsiblesManager({ facilityId, facilityName }: { facilityId: string;
             )}
           </button>
         </div>
-        {validationError && (
-          <p className="text-sm text-red-600">{validationError}</p>
-        )}
+        {validationError && <p className="text-sm text-red-600">{validationError}</p>}
       </div>
 
       {/* Current Emails List */}
@@ -241,12 +255,12 @@ function ResponsiblesManager({ facilityId, facilityName }: { facilityId: string;
         <label className="text-sm font-medium text-gray-700">
           Current Recipients ({emails.length})
         </label>
-        
+
         {emails.length === 0 ? (
-          <div className="rounded-lg bg-yellow-50 p-6 text-center border border-yellow-200">
-            <Mail className="mx-auto h-12 w-12 text-yellow-500 mb-3" />
-            <p className="text-yellow-800 font-medium">No recipients configured</p>
-            <p className="text-sm text-yellow-700 mt-1">
+          <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-6 text-center">
+            <Mail className="mx-auto mb-3 h-12 w-12 text-yellow-500" />
+            <p className="font-medium text-yellow-800">No recipients configured</p>
+            <p className="mt-1 text-sm text-yellow-700">
               Add email addresses to receive alerts when sensor values go out of range
             </p>
           </div>
@@ -258,7 +272,7 @@ function ResponsiblesManager({ facilityId, facilityName }: { facilityId: string;
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.05 }}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
+                className="flex items-center justify-between rounded-lg border border-gray-200 bg-gray-50 p-3 transition-colors hover:border-gray-300"
               >
                 <div className="flex items-center gap-3">
                   <Mail className="h-5 w-5 text-gray-400" />
@@ -267,7 +281,7 @@ function ResponsiblesManager({ facilityId, facilityName }: { facilityId: string;
                 <button
                   onClick={() => handleRemoveEmail(email)}
                   disabled={updateMutation.isPending}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="rounded-lg p-2 text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                   title="Remove email"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -279,12 +293,12 @@ function ResponsiblesManager({ facilityId, facilityName }: { facilityId: string;
       </div>
 
       {/* Info */}
-      <div className="rounded-lg bg-blue-50 p-4 border border-blue-200">
+      <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
         <p className="text-sm text-blue-800">
-          These emails will receive alerts when any plot in this facility has sensor values outside configured thresholds.
+          These emails will receive alerts when any plot in this facility has sensor values outside
+          configured thresholds.
         </p>
       </div>
     </div>
   )
 }
-
